@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HTMLChat (DO Edition with Rooms & Emojis)</title>
+  <style>
+    body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; margin: 2em; background: #f9f9f9; color: #222; }
+    #chat { border: 1px solid #ccc; padding: 1em; height: 320px; overflow-y: scroll; background: white; border-radius: 8px; }
+    .msg { margin-bottom: 0.6em; }
+    .user { font-weight: 700; }
+    .time { color: #888; font-size: 0.75em; margin-left: 0.5em; }
+    #chat-header { margin-bottom: 1em; }
+    #room-select { margin-bottom: 1em; }
+    #welcome { margin-bottom: 1em; font-style: italic; }
+    #chat-form input { padding: 0.5em; width: 80%; border-radius: 4px; border: 1px solid #ccc; }
+    #chat-form button { padding: 0.5em 1em; border-radius: 4px; border: none; background: #4caf50; color: white; font-weight: bold; cursor: pointer; }
+    #chat-form button:hover { background: #45a049; }
+    #backup { margin-top: 1em; padding: 0.4em 0.8em; border-radius: 4px; background: #007bff; color: white; border: none; cursor: pointer; }
+    #backup:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <h1>HTMLChat</h1>
+  <div id="chat-header">
+    <label for="room-select">Choose room:</label>
+    <select id="room-select">
+      <option value="default">Default</option>
+      <option value="fun">Fun</option>
+      <option value="random">Random</option>
+      <option value="tech">Tech Talk</option>
+    </select>
+  </div>
+
+  <div id="welcome"></div>
+
+  <div id="chat"></div>
+
+  <form id="chat-form" autocomplete="off">
+    <input id="msg" placeholder="Type a message... 😃" required />
+    <button>Send</button>
+  </form>
+  <button id="backup">Export Chat Backup</button>
+
+  <!-- markdown-it core + emoji plugin + DOMPurify -->
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markdown-it-emoji/dist/markdown-it-emoji.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+
+  <script>
+    // Initialize markdown-it with emoji support
+    const md = window.markdownit().use(window.markdownitEmoji);
+
+    // User avatar emojis to assign randomly per user
+    const avatarEmojis = ["😎","🤖","👾","🦄","🐱‍👤","🐉","🌟","🔥","🎯","🚀"];
+
+    // Simple hash function for username to color & avatar consistency
+    function hashString(str) {
+      let hash = 0;
+      for (let i=0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return hash;
+    }
+    function stringToColor(str) {
+      const hash = hashString(str);
+      const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+      return "#" + "00000".substring(0, 6 - c.length) + c;
+    }
+    function stringToAvatar(str) {
+      const hash = Math.abs(hashString(str));
+      return avatarEmojis[hash % avatarEmojis.length];
+    }
+
+    // IndexedDB helpers (same as before)
+    const dbName = "htmlchatDB";
+    const storeName = "messages";
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = e => {
+          e.target.result.createObjectStore(storeName, { keyPath: "time" });
+        };
+      });
+    }
+    async function saveMessages(messages) {
+      const db = await openDB();
+      const tx = db.transaction(storeName, "readwrite");
+      const store = tx.objectStore(storeName);
+      messages.forEach(msg => store.put(msg));
+      return tx.complete;
+    }
+    async function loadMessages() {
+      const db = await openDB();
+      const tx = db.transaction(storeName, "readonly");
+      const store = tx.objectStore(storeName);
+      return new Promise((resolve, reject) => {
+        const req = store.getAll();
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+      });
+    }
+
+    // Render chat messages
+    function renderMessages(messages) {
+      return messages.map(({ user, text, time }) => {
+        const color = stringToColor(user);
+        const avatar = stringToAvatar(user);
+        const date = new Date(time).toLocaleTimeString();
+        const html = DOMPurify.sanitize(md.renderInline(text));
+        return `<div class="msg">
+          <span class="user" style="color:${color}">${avatar} ${user}</span>
+          <span class="time">${date}</span>: <span class="text">${html}</span>
+        </div>`;
+      }).join('');
+    }
+
+    (function(){
+      // User & room management with persistence
+      let user = localStorage.getItem("htmlchatUser");
+      if (!user) {
+        user = prompt("Enter your name") || "anon";
+        localStorage.setItem("htmlchatUser", user);
+      }
+
+      const roomSelect = document.getElementById("room-select");
+      const savedRoom = localStorage.getItem("htmlchatRoom") || "default";
+      roomSelect.value = savedRoom;
+
+      const welcomeDiv = document.getElementById("welcome");
+      welcomeDiv.textContent = `Welcome, ${stringToAvatar(user)} ${user}! You are in the "${roomSelect.value}" room.`;
+
+      const chatBox = document.getElementById("chat");
+      const form = document.getElementById("chat-form");
+      const input = document.getElementById("msg");
+      const backupBtn = document.getElementById("backup");
+
+      const baseURL = "https://htmlchat.neeljaiswal23.workers.dev";
+
+      async function fetchMessages() {
+        try {
+          // Load cached messages first
+          const cached = await loadMessages();
+          if (cached.length) {
+            chatBox.innerHTML = renderMessages(
+              cached.filter(m => m.room === roomSelect.value)
+            );
+            chatBox.scrollTop = chatBox.scrollHeight;
+          }
+        } catch(e) {
+          console.warn("Failed to load messages from IndexedDB", e);
+        }
+
+        try {
+          const res = await fetch(`${baseURL}/chat/${roomSelect.value}`);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const messages = await res.json();
+          chatBox.innerHTML = renderMessages(messages);
+          chatBox.scrollTop = chatBox.scrollHeight;
+          // Save all fetched messages with room info in IndexedDB
+          await saveMessages(messages.map(m => ({ ...m, room: roomSelect.value })));
+        } catch(e) {
+          console.error("Failed to fetch messages from server", e);
+        }
+      }
+
+      form.onsubmit = async e => {
+        e.preventDefault();
+        try {
+          const room = roomSelect.value;
+          const res = await fetch(`${baseURL}/chat/${room}?user=${encodeURIComponent(user)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: input.value }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          input.value = "";
+          await fetchMessages();
+        } catch(e) {
+          console.error("Failed to send message", e);
+        }
+      };
+
+      backupBtn.onclick = async () => {
+        try {
+          const messages = await loadMessages();
+          // Only export current room messages
+          const roomMsgs = messages.filter(m => m.room === roomSelect.value);
+          const blob = new Blob([JSON.stringify(roomMsgs, null, 2)], {type: "application/json"});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `htmlchat_backup_${roomSelect.value}_${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch(e) {
+          alert("Failed to export chat: " + e);
+        }
+      };
+
+      roomSelect.onchange = () => {
+        localStorage.setItem("htmlchatRoom", roomSelect.value);
+        welcomeDiv.textContent = `Welcome, ${stringToAvatar(user)} ${user}! You are in the "${roomSelect.value}" room.`;
+        fetchMessages();
+      };
+
+      setInterval(fetchMessages, 2000);
+      fetchMessages();
+    })();
+  </script>
+</body>
+</html>
