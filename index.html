@@ -1,215 +1,667 @@
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HTMLChat</title>
   <style>
-    body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; margin: 2em; background: #f9f9f9; color: #222; }
-    #chat { border: 1px solid #ccc; padding: 1em; height: 320px; overflow-y: scroll; background: white; border-radius: 8px; }
-    .msg { margin-bottom: 0.6em; }
-    .user { font-weight: 700; }
-    .time { color: #888; font-size: 0.75em; margin-left: 0.5em; }
-    #chat-header { margin-bottom: 1em; }
-    #room-select { margin-bottom: 1em; }
-    #welcome { margin-bottom: 1em; font-style: italic; }
-    #chat-form input { padding: 0.5em; width: 80%; border-radius: 4px; border: 1px solid #ccc; }
-    #chat-form button { padding: 0.5em 1em; border-radius: 4px; border: none; background: #4caf50; color: white; font-weight: bold; cursor: pointer; }
-    #chat-form button:hover { background: #45a049; }
-    #backup { margin-top: 1em; padding: 0.4em 0.8em; border-radius: 4px; background: #007bff; color: white; border: none; cursor: pointer; }
-    #backup:hover { background: #0056b3; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Trebuchet MS', Arial, sans-serif;
+      background: #f0f0f0;
+      color: #333;
+      font-size: 12px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #fff;
+      border: 2px solid #ccc;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .header {
+      background: linear-gradient(90deg, #2196F3, #21CBF3);
+      color: white;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 14px;
+      border-bottom: 1px solid #0066cc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .minimize-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: 2px;
+    }
+
+    .minimize-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    .toolbar {
+      background: #e8e8e8;
+      border-bottom: 1px solid #ccc;
+      padding: 6px 8px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 11px;
+    }
+
+    .room-select {
+      padding: 2px 4px;
+      border: 1px inset #ccc;
+      background: white;
+      font-size: 11px;
+      font-family: inherit;
+    }
+
+    .user-count {
+      color: #666;
+      margin-left: auto;
+    }
+
+    .main-content {
+      display: flex;
+      height: 400px;
+    }
+
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-box {
+      flex: 1;
+      background: white;
+      border-right: 1px solid #ccc;
+      overflow-y: auto;
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .msg {
+      padding: 2px 6px;
+      border-bottom: 1px dotted #ddd;
+    }
+
+    .msg:hover {
+      background: #f5f5f5;
+    }
+
+    .msg .time {
+      color: #666;
+      font-size: 10px;
+    }
+
+    .msg .user {
+      font-weight: bold;
+      margin-right: 4px;
+    }
+
+    .msg .text {
+      margin-left: 4px;
+    }
+
+    .user-list {
+      width: 150px;
+      background: #f8f8f8;
+      border-left: 1px solid #ccc;
+      overflow-y: auto;
+    }
+
+    .user-list-header {
+      background: #e0e0e0;
+      padding: 4px 6px;
+      font-size: 11px;
+      font-weight: bold;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .user-item {
+      padding: 2px 6px;
+      font-size: 11px;
+      border-bottom: 1px dotted #ddd;
+    }
+
+    .user-item:hover {
+      background: #e8e8e8;
+    }
+
+    .input-area {
+      border-top: 1px solid #ccc;
+      padding: 6px;
+      background: #f0f0f0;
+    }
+
+    .input-container {
+      display: flex;
+      gap: 4px;
+    }
+
+    .msg-input {
+      flex: 1;
+      padding: 3px 6px;
+      border: 1px inset #ccc;
+      font-size: 11px;
+      font-family: inherit;
+    }
+
+    .send-btn {
+      padding: 3px 12px;
+      background: linear-gradient(90deg, #2196F3, #21CBF3);
+      color: white;
+      border: 1px outset #2196F3;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: inherit;
+    }
+
+    .send-btn:active {
+      border: 1px inset #2196F3;
+    }
+
+    .send-btn:disabled {
+      background: #ccc;
+      border: 1px outset #ccc;
+      cursor: not-allowed;
+    }
+
+    .status-bar {
+      background: #e8e8e8;
+      border-top: 1px solid #ccc;
+      padding: 3px 6px;
+      font-size: 10px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00cc00;
+    }
+
+    .status-dot.disconnected {
+      background: #cc0000;
+    }
+
+    /* Scrollbar styling for retro feel */
+    .chat-box::-webkit-scrollbar,
+    .user-list::-webkit-scrollbar {
+      width: 14px;
+    }
+
+    .chat-box::-webkit-scrollbar-track,
+    .user-list::-webkit-scrollbar-track {
+      background: #f0f0f0;
+      border: 1px inset #ccc;
+    }
+
+    .chat-box::-webkit-scrollbar-thumb,
+    .user-list::-webkit-scrollbar-thumb {
+      background: linear-gradient(90deg, #2196F3, #21CBF3);
+      border: 1px outset #2196F3;
+    }
+
+    .chat-box::-webkit-scrollbar-button,
+    .user-list::-webkit-scrollbar-button {
+      background: #e0e0e0;
+      border: 1px outset #ccc;
+      height: 14px;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 640px) {
+      .container {
+        margin: 10px;
+        max-width: none;
+      }
+      
+      .main-content {
+        height: 300px;
+      }
+      
+      .user-list {
+        display: none;
+      }
+      
+      .toolbar {
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+    }
+
+    /* System message styling */
+    .msg.system {
+      background: #fff3cd;
+      border-left: 3px solid #ffc107;
+    }
+
+    .msg.system .user {
+      color: #856404;
+    }
+
+    /* Welcome message */
+    .welcome {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      padding: 8px;
+      margin: 4px;
+      font-size: 11px;
+      border-radius: 2px;
+    }
   </style>
 </head>
 <body>
-  <h1>HTMLChat</h1>
-  <div id="chat-header">
-    <label for="room-select">Choose room:</label>
-    <select id="room-select">
-      <option value="default">Default</option>
-      <option value="fun">Fun</option>
-      <option value="random">Random</option>
-      <option value="tech">Tech Talk</option>
-    </select>
+  <div class="container">
+    <div class="header">
+      <h1>HTMLChat v1.0</h1>
+      <button class="minimize-btn" onclick="window.close()">×</button>
+    </div>
+
+    <div class="toolbar">
+      <label for="room-select">Room:</label>
+      <select id="room-select" class="room-select">
+        <option value="default">#general</option>
+        <option value="fun">#random</option>
+        <option value="random">#offtopic</option>
+        <option value="tech">#computers</option>
+      </select>
+      <span class="user-count">Users online: <span id="user-count">1</span></span>
+    </div>
+
+    <div id="welcome" class="welcome"></div>
+
+    <div class="main-content">
+      <div class="chat-area">
+        <div id="chat" class="chat-box"></div>
+        <div class="input-area">
+          <form id="chat-form" class="input-container" autocomplete="off">
+            <input id="msg" class="msg-input" placeholder="Type message here..." maxlength="200" />
+            <button type="submit" class="send-btn" id="send-btn">Send</button>
+          </form>
+        </div>
+      </div>
+      
+      <div class="user-list">
+        <div class="user-list-header">Users</div>
+        <div id="users"></div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="connection-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connected</span>
+      </div>
+      <div>
+        <button onclick="exportChat()" style="background:none;border:none;color:#666;cursor:pointer;font-size:10px;">Export</button>
+      </div>
+    </div>
   </div>
 
-  <div id="welcome"></div>
-
-  <div id="chat"></div>
-
-  <form id="chat-form" autocomplete="off">
-    <input id="msg" placeholder="Type a message... " required />
-    <button>Send</button>
-  </form>
-  <button id="backup">Export Chat Backup</button>
-
-  <!-- markdown-it core + emoji plugin + DOMPurify -->
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it/dist/markdown-it.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it-emoji/dist/markdown-it-emoji.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+  <!-- External dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
 
   <script>
-    // Initialize markdown-it with emoji support
-    const md = window.markdownit().use(window.markdownitEmoji);
+    // Simple text processing (no markdown for retro feel)
+    function processText(text) {
+      // Basic URL detection and linking
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      let processed = DOMPurify.sanitize(text);
+      processed = processed.replace(urlRegex, '<a href="$1" target="_blank" style="color:#0066cc">$1</a>');
+      return processed;
+    }
 
-    // User avatar emojis to assign randomly per user
-    const avatarEmojis = ["😎","🤖","👾","🦄","🐱‍👤","🐉","🌟","🔥","🎯","🚀"];
+    // Simple color assignment
+    const userColors = [
+      '#cc0000', '#00cc00', '#0000cc', '#cc6600', '#cc00cc', 
+      '#006666', '#990099', '#009900', '#990000', '#000099'
+    ];
 
-    // Simple hash function for username to color & avatar consistency
-    function hashString(str) {
+    function getUserColor(user) {
       let hash = 0;
-      for (let i=0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+      for (let i = 0; i < user.length; i++) {
+        hash = user.charCodeAt(i) + ((hash << 5) - hash);
       }
-      return hash;
-    }
-    function stringToColor(str) {
-      const hash = hashString(str);
-      const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-      return "#" + "00000".substring(0, 6 - c.length) + c;
-    }
-    function stringToAvatar(str) {
-      const hash = Math.abs(hashString(str));
-      return avatarEmojis[hash % avatarEmojis.length];
+      return userColors[Math.abs(hash) % userColors.length];
     }
 
-    // IndexedDB helpers (same as before)
-    const dbName = "htmlchatDB";
-    const storeName = "messages";
-
-    function openDB() {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(dbName, 1);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
-        request.onupgradeneeded = e => {
-          e.target.result.createObjectStore(storeName, { keyPath: "time" });
-        };
-      });
-    }
-    async function saveMessages(messages) {
-      const db = await openDB();
-      const tx = db.transaction(storeName, "readwrite");
-      const store = tx.objectStore(storeName);
-      messages.forEach(msg => store.put(msg));
-      return tx.complete;
-    }
-    async function loadMessages() {
-      const db = await openDB();
-      const tx = db.transaction(storeName, "readonly");
-      const store = tx.objectStore(storeName);
-      return new Promise((resolve, reject) => {
-        const req = store.getAll();
-        req.onerror = () => reject(req.error);
-        req.onsuccess = () => resolve(req.result);
-      });
+    // Simple storage
+    function saveToStorage(key, data) {
+      try {
+        localStorage.setItem(key, JSON.stringify(data));
+      } catch(e) {
+        console.warn("Storage failed:", e);
+      }
     }
 
-    // Render chat messages
+    function loadFromStorage(key) {
+      try {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : null;
+      } catch(e) {
+        console.warn("Load failed:", e);
+        return null;
+      }
+    }
+
+    // Message rendering
     function renderMessages(messages) {
       return messages.map(({ user, text, time }) => {
-        const color = stringToColor(user);
-        const avatar = stringToAvatar(user);
-        const date = new Date(time).toLocaleTimeString();
-        const html = DOMPurify.sanitize(md.renderInline(text));
-        return `<div class="msg">
-          <span class="user" style="color:${color}">${avatar} ${user}</span>
-          <span class="time">${date}</span>: <span class="text">${html}</span>
-        </div>`;
+        const color = getUserColor(user);
+        const date = new Date(time).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        const processedText = processText(text);
+        
+        return `
+          <div class="msg">
+            <span class="time">[${date}]</span>
+            <span class="user" style="color:${color}">&lt;${user}&gt;</span>
+            <span class="text">${processedText}</span>
+          </div>
+        `;
       }).join('');
     }
 
-    (function(){
-      // User & room management with persistence
-      let user = localStorage.getItem("htmlchatUser");
+    function scrollToBottom() {
+      const chatBox = document.getElementById("chat");
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function updateStatus(connected) {
+      const dot = document.getElementById("status-dot");
+      const text = document.getElementById("status-text");
+      
+      if (connected) {
+        dot.className = "status-dot";
+        text.textContent = "Connected";
+      } else {
+        dot.className = "status-dot disconnected";
+        text.textContent = "Disconnected";
+      }
+    }
+
+    function exportChat() {
+      const messages = loadFromStorage("htmlchat_messages") || [];
+      if (messages.length === 0) {
+        alert("No messages to export.");
+        return;
+      }
+
+      const exportData = {
+        room: document.getElementById("room-select").value,
+        exported: new Date().toISOString(),
+        messages: messages
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: "application/json"
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `htmlchat-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Main application
+    (function() {
+      let user = loadFromStorage("htmlchat_user");
       if (!user) {
-        user = prompt("Enter your name") || "anon";
-        localStorage.setItem("htmlchatUser", user);
+        do {
+          user = prompt("Enter your nickname:") || "";
+          user = user.trim().substring(0, 20);
+        } while (!user);
+        saveToStorage("htmlchat_user", user);
       }
 
       const roomSelect = document.getElementById("room-select");
-      const savedRoom = localStorage.getItem("htmlchatRoom") || "default";
-      roomSelect.value = savedRoom;
-
       const welcomeDiv = document.getElementById("welcome");
-      welcomeDiv.textContent = `Welcome, ${stringToAvatar(user)} ${user}! You are in the "${roomSelect.value}" room.`;
-
       const chatBox = document.getElementById("chat");
       const form = document.getElementById("chat-form");
       const input = document.getElementById("msg");
-      const backupBtn = document.getElementById("backup");
+      const sendBtn = document.getElementById("send-btn");
+      const usersDiv = document.getElementById("users");
+
+      const savedRoom = loadFromStorage("htmlchat_room") || "default";
+      roomSelect.value = savedRoom;
 
       const baseURL = "https://htmlchat.neeljaiswal23.workers.dev";
 
+      function updateWelcome() {
+        welcomeDiv.innerHTML = `Welcome to HTMLChat, <b>${user}</b>! You are now in room <b>${roomSelect.value}</b>.`;
+      }
+
+      updateWelcome();
+
+      // Simulate user list (since we don't have real user tracking)
+      function updateUserList() {
+        const fakeUsers = [user, "ChatBot", "Guest123"];
+        document.getElementById("user-count").textContent = fakeUsers.length;
+        usersDiv.innerHTML = fakeUsers.map(u => 
+          `<div class="user-item" style="color:${getUserColor(u)}">${u}</div>`
+        ).join('');
+      }
+
+      updateUserList();
+
       async function fetchMessages() {
         try {
-          // Load cached messages first
-          const cached = await loadMessages();
-          if (cached.length) {
-            chatBox.innerHTML = renderMessages(
-              cached.filter(m => m.room === roomSelect.value)
-            );
-            chatBox.scrollTop = chatBox.scrollHeight;
+          const cached = loadFromStorage(`htmlchat_${roomSelect.value}`);
+          if (cached) {
+            chatBox.innerHTML = renderMessages(cached);
+            scrollToBottom();
           }
-        } catch(e) {
-          console.warn("Failed to load messages from IndexedDB", e);
-        }
 
-        try {
           const res = await fetch(`${baseURL}/chat/${roomSelect.value}`);
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const messages = await res.json();
+          
           chatBox.innerHTML = renderMessages(messages);
-          chatBox.scrollTop = chatBox.scrollHeight;
-          // Save all fetched messages with room info in IndexedDB
-          await saveMessages(messages.map(m => ({ ...m, room: roomSelect.value })));
+          scrollToBottom();
+          
+          saveToStorage(`htmlchat_${roomSelect.value}`, messages);
+          updateStatus(true);
         } catch(e) {
-          console.error("Failed to fetch messages from server", e);
+          console.error("Fetch failed:", e);
+          updateStatus(false);
+          
+          if (chatBox.innerHTML === '') {
+            chatBox.innerHTML = `
+              <div class="msg system">
+                <span class="time">[--:--]</span>
+                <span class="user">*** System ***</span>
+                <span class="text">Unable to connect to server. Please check your connection.</span>
+              </div>
+            `;
+          }
         }
       }
 
       form.onsubmit = async e => {
         e.preventDefault();
+        const messageText = input.value.trim();
+        if (!messageText) return;
+
+        sendBtn.disabled = true;
+        sendBtn.textContent = "...";
+
         try {
           const room = roomSelect.value;
           const res = await fetch(`${baseURL}/chat/${room}?user=${encodeURIComponent(user)}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: input.value }),
+            body: JSON.stringify({ text: messageText }),
           });
+          
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          
           input.value = "";
+          
+          // Immediately fetch new messages after sending
+          await fetchMessages(true);
+          
+          // Reset refresh interval since we're active
+          scheduleNextRefresh(15000); // 15 seconds after sending
+          
+        } catch(e) {
+          console.error("Send failed:", e);
+          alert("Message failed to send. Please try again.");
+          updateStatus(false);
+        } finally {
+          sendBtn.disabled = false;
+          sendBtn.textContent = "Send";
+          input.focus();
+        }
+      };
+
+      roomSelect.onchange = async () => {
+        // Clear current timers
+        if (refreshTimer) {
+          clearTimeout(refreshTimer);
+        }
+        
+        // Leave current room (only if we were in a different room)
+        const oldRoom = localStorage.getItem("htmlchat_room") || "default";
+        if (oldRoom !== roomSelect.value) {
+          try {
+            await fetch(`${baseURL}/chat/${oldRoom}?user=${encodeURIComponent(user)}`, {
+              method: "DELETE"
+            });
+          } catch(e) {
+            console.warn("Failed to leave room:", e);
+          }
+        }
+        
+        saveToStorage("htmlchat_room", roomSelect.value);
+        updateWelcome();
+        chatBox.innerHTML = '<div class="msg system"><span class="time">[--:--]</span><span class="user">*** System ***</span><span class="text">Loading messages...</span></div>';
+        
+        // Reset tracking variables
+        lastMessageTime = 0;
+        lastFetchTime = 0;
+        
+        await fetchMessages(true);
+        scheduleNextRefresh(15000); // Start fresh interval
+      };
+
+      // Smart refresh scheduling based on activity
+      function scheduleNextRefresh(delay = 20000) { // Default 20 seconds
+        if (refreshTimer) {
+          clearTimeout(refreshTimer);
+        }
+        
+        // Adjust delay based on visibility and activity
+        if (!isVisible) {
+          delay = Math.min(delay * 3, 60000); // Max 1 minute when not visible
+        }
+        
+        refreshTimer = setTimeout(async () => {
           await fetchMessages();
-        } catch(e) {
-          console.error("Failed to send message", e);
+          scheduleNextRefresh(isVisible ? 20000 : 45000); // 20s visible, 45s hidden
+        }, delay);
+      }
+
+      // Page visibility handling to reduce calls when tab is hidden
+      document.addEventListener('visibilitychange', () => {
+        isVisible = !document.hidden;
+        
+        if (isVisible) {
+          // When tab becomes visible, fetch immediately then schedule normal refresh
+          fetchMessages(true);
+          scheduleNextRefresh(15000);
+        } else {
+          // When tab is hidden, slow down refresh rate
+          scheduleNextRefresh(60000); // 1 minute when hidden
         }
-      };
+      });
 
-      backupBtn.onclick = async () => {
-        try {
-          const messages = await loadMessages();
-          // Only export current room messages
-          const roomMsgs = messages.filter(m => m.room === roomSelect.value);
-          const blob = new Blob([JSON.stringify(roomMsgs, null, 2)], {type: "application/json"});
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `htmlchat_backup_${roomSelect.value}_${Date.now()}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-        } catch(e) {
-          alert("Failed to export chat: " + e);
+      // Heartbeat only every 2 minutes (much less frequent)
+      function scheduleHeartbeat() {
+        setTimeout(async () => {
+          if (isVisible) { // Only send heartbeat if tab is visible
+            await sendHeartbeat();
+          }
+          scheduleHeartbeat();
+        }, 120000); // Every 2 minutes
+      }
+
+      // Manual refresh button (add this to reduce automatic calls)
+      function addRefreshButton() {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.textContent = '↻';
+        refreshBtn.style.cssText = 'background:none;border:none;color:#666;cursor:pointer;font-size:14px;margin-left:10px;';
+        refreshBtn.title = 'Refresh messages';
+        refreshBtn.onclick = () => fetchMessages(true);
+        document.querySelector('.status-bar .connection-status').appendChild(refreshBtn);
+      }
+
+      // Leave room when page is closed/refreshed
+      window.addEventListener('beforeunload', () => {
+        const url = `${baseURL}/chat/${roomSelect.value}?user=${encodeURIComponent(user)}`;
+        navigator.sendBeacon(url, JSON.stringify({ method: 'DELETE' }));
+      });
+
+      // Focus events to detect user activity
+      let lastActivity = Date.now();
+      ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
+        document.addEventListener(event, () => {
+          lastActivity = Date.now();
+        }, { passive: true });
+      });
+
+      // Initial load
+      fetchMessages(true);
+      addRefreshButton();
+      scheduleNextRefresh(15000); // Start with 15 second interval
+      setTimeout(() => scheduleHeartbeat(), 60000); // First heartbeat after 1 minute
+      input.focus();
+
+      // Enter key focus
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && document.activeElement !== input) {
+          input.focus();
         }
-      };
-
-      roomSelect.onchange = () => {
-        localStorage.setItem("htmlchatRoom", roomSelect.value);
-        welcomeDiv.textContent = `Welcome, ${stringToAvatar(user)} ${user}! You are in the "${roomSelect.value}" room.`;
-        fetchMessages();
-      };
-
-      setInterval(fetchMessages, 2000);
-      fetchMessages();
+      });
     })();
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>
+    eruda.init();
+  </script>
 </body>
+
 </html>
