@@ -96,9 +96,11 @@
     }
 
     .chat-area {
-      flex: 1;
       display: flex;
       flex-direction: column;
+      flex: 1 1 0;         /* Grow and shrink as needed */
+      min-width: 300px;    /* Prevent it from becoming too narrow */
+      max-width: calc(100% - 200px); /* Leave space for user list */
     }
 
     .chat-box {
@@ -267,6 +269,10 @@
       .toolbar {
         flex-wrap: wrap;
         gap: 8px;
+      }
+      .chat-area {
+        max-width: 100%;
+        min-width: 100%;
       }
     }
 
