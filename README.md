@@ -38,8 +38,7 @@ This is **beta**, so expect bugs and jank. Stuff I *might* add:
 ```
 https://htmlchat.neeljaiswal23.workers.dev
 ```  
-The source for it is at `Worker/`.
-
+The source for it is at `Worker/`!
 You can swap `baseURL` in the JS if you want to host your own.
 
 ## License
