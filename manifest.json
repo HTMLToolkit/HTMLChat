@@ -56,5 +56,5 @@
   "start_url": "/HTMLChat",
   "display": "standalone",
   "background_color": "#00c6ff",
-  "theme_color": "#00c6ff",
+  "theme_color": "#00c6ff"
 }
