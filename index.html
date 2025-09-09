@@ -317,7 +317,7 @@
         <div id="chat" class="chat-box"></div>
         <div class="input-area">
           <div id="chat-form" class="input-container">
-            <input id="msg" class="msg-input" placeholder="Type message here..." maxlength="200" />
+            <input id="msg" class="msg-input" placeholder="Type message here..." maxlength="1000" />
             <button type="button" class="send-btn" id="send-btn">Send</button>
           </div>
         </div>
@@ -342,7 +342,8 @@
 
   <!-- External dependencies -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
   <script>
     // Global variables
     let refreshTimer = null;
@@ -351,15 +352,25 @@
     let lastMessageTime = 0;
     let lastFetchTime = 0;
 
-    // Simple text processing (no markdown for retro feel)
     function processText(text) {
-      // Basic URL detection and linking
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      let processed = DOMPurify.sanitize(text);
-      processed = processed.replace(urlRegex, '<a href="$1" target="_blank" style="color:#0066cc">$1</a>');
-      return processed;
+      // 1. Convert Markdown to HTML
+      let html = marked.parse(text);
+  
+      // 2. Sanitize the HTML to prevent XSS
+      html = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: [
+          'b','i','em','strong','u','a','p','ul','ol','li','code',
+          'pre','img','h1','h2','h3','h4','h5','h6','br','span','div'
+        ],
+        ALLOWED_ATTR: ['href','src','alt','title','target','style']
+      });
+  
+      // 3. convert remaining plain URLs (not inside tags) into clickable links
+      html = html.replace(/(?<!["'>])\bhttps?:\/\/[^\s<]+/g, '<a href="$&" target="_blank" style="color:#0066cc">$&</a>');
+  
+      return html;
     }
-
+    
     // Simple color assignment
     const userColors = [
       '#cc0000', '#00cc00', '#0000cc', '#cc6600', '#cc00cc', 
