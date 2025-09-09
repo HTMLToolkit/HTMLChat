@@ -53,8 +53,8 @@
       "type": "image/png"
     }
   ],
-  "start_url": "/",
+  "start_url": "/HTMLChat",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000"
+  "background_color": "#00c6ff",
+  "theme_color": "#00c6ff",
 }
