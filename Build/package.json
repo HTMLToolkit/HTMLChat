@@ -1,0 +1,29 @@
+{
+  "name": "htmlchat",
+  "version": "0.2.0",
+  "description": "A retro-styled, browser-only chat client.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HTMLToolkit/HTMLChat.git"
+  },
+  "keywords": [
+    "serverless",
+    "chatroom",
+    "retro"
+  ],
+  "author": "NellowTCS",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/HTMLToolkit/HTMLChat/issues"
+  },
+  "homepage": "https://github.com/HTMLToolkit/HTMLChat#readme",
+  "dependencies": {
+    "vite": "^7.1.5"
+  }
+}
