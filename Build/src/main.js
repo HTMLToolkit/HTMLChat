@@ -152,7 +152,7 @@ class HTMLChatApp {
   }
   
   updateWelcome() {
-    this.elements.welcomeDiv.innerHTML = `Welcome to HTMLChat Enhanced, <b>${this.user}</b>! You are now in room <b>${this.elements.roomSelect.value}</b>.`;
+    this.elements.welcomeDiv.innerHTML = `Welcome to HTMLChat, <b>${this.user}</b>! You are now in room <b>${this.elements.roomSelect.value}</b>.`;
   }
   
   updateStatus(connected) {
