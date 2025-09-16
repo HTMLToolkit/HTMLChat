@@ -38,7 +38,7 @@ export class ContextMenuManager {
       element: messageElement,
       user: messageElement.dataset.user,
       time: messageElement.dataset.time,
-      id: messageElement.id,
+      id: messageElement.dataset.messageId || messageElement.id,
       text: messageElement.querySelector('.text').textContent
     };
     

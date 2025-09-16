@@ -58,15 +58,15 @@ export class MessageRenderer {
         minute: '2-digit' 
       });
       
-      // Check if this is a reply
-      const replyMatch = text.match(/^@reply:(\d+):([^:]+):\s*(.*)/);
+      // Check if this is a reply and extract the actual message
+      const replyMatch = text.match(/^@reply:([^:]+):([^:]+):\s*(.*)/);
       let replyInfo = null;
       let actualText = text;
       
       if (replyMatch) {
         const [, messageId, replyUser, messageText] = replyMatch;
         replyInfo = { messageId, replyUser };
-        actualText = messageText;
+        actualText = messageText.trim();
       }
       
       // Check for file attachments
@@ -82,21 +82,20 @@ export class MessageRenderer {
       }
       
       const processedText = this.processText(actualText);
-      const messageId = `msg-${time}-${index}`;
+      const messageId = message.id || `msg-${time}-${index}`;
       const isModerator = this.app.modTools.isModerator(user);
       
       let messageClass = 'msg';
       if (replyInfo) messageClass += ' reply-msg';
+      if (message.system) messageClass += ' system';
       
       let messageHtml = `
         <div class="${messageClass}" id="${messageId}" 
              data-user="${user}" 
              data-time="${time}"
+             data-message-id="${messageId}"
              oncontextmenu="app.contextMenu.show(event, this)">
           <span class="time">[${date}]</span>
-          <span class="user${isModerator ? ' moderator' : ''}" 
-                style="color:${color}"
-                ondblclick="app.pmManager.openPrivateMessage('${user}')">&lt;${user}&gt;</span>
       `;
       
       // Add reply reference if this is a reply
@@ -107,6 +106,12 @@ export class MessageRenderer {
           </div>
         `;
       }
+      
+      messageHtml += `
+          <span class="user${isModerator ? ' moderator' : ''}" 
+                style="color:${color}"
+                ondblclick="app.pmManager.openPrivateMessage('${user}')">&lt;${user}&gt;</span>
+      `;
       
       // Add the message content
       if (fileAttachment) {

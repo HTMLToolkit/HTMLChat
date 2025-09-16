@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HTMLChat</title>
+  <title>HTMLChat Enhanced</title>
   <!-- Favicon for browsers -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-512x512.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-512x512.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-512x512.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-512x512.png">
   
   <!-- Apple touch icon (iOS) -->
-  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-512x512.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-512x512.png">
   
   <!-- Manifest -->
-  <link rel="manifest" href="public/manifest.json">
+  <link rel="manifest" href="src/manifest.json">
   
   <!-- External Styles -->
   <link rel="stylesheet" href="src/styles.css">
@@ -78,11 +78,16 @@
 
   <div class="container">
     <div class="header">
-      <h1>HTMLChat</h1>
-      <p>version v0.2.0</p>
+      <h1>HTMLChat Enhanced</h1>
+      <p>version v2.0.0</p>
       <div class="header-controls">
-        <button class="header-btn" onclick="toggleSounds()" id="sound-toggle" title="Toggle Sounds">🔊</button>
-        <button class="header-btn" onclick="openSearchModal()" title="Search Messages">🔍</button>
+        <button class="header-btn" onclick="toggleSounds()" id="sound-toggle" title="Toggle Sounds">
+          <i data-lucide="volume-2" class="sound-on-icon"></i>
+          <i data-lucide="volume-x" class="sound-off-icon" style="display: none;"></i>
+        </button>
+        <button class="header-btn" onclick="openSearchModal()" title="Search Messages">
+          <i data-lucide="search"></i>
+        </button>
         <button class="minimize-btn" onclick="window.close()">×</button>
       </div>
     </div>
@@ -95,7 +100,9 @@
         <option value="random">#offtopic</option>
         <option value="tech">#computers</option>
       </select>
-      <button class="toolbar-btn" onclick="openUploadModal()" title="Upload File">📎</button>
+      <button class="toolbar-btn" onclick="openUploadModal()" title="Upload File">
+        <i data-lucide="paperclip"></i>
+      </button>
       <span class="user-count">Users online: <span id="user-count">1</span></span>
     </div>
 
@@ -134,7 +141,9 @@
       </div>
       <div>
         <button onclick="exportChat()" class="status-btn">Export</button>
-        <button onclick="showNotificationSettings()" class="status-btn">🔔</button>
+        <button onclick="showNotificationSettings()" class="status-btn">
+          <i data-lucide="bell"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -142,6 +151,7 @@
   <!-- External dependencies -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   
   <!-- Audio files (using data URLs for retro sounds) -->
   <audio id="sound-message" preload="auto">
@@ -156,7 +166,7 @@
     <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB" type="audio/wav">
   </audio>
 
-  <!-- Modular JavaScript -->
+  <!-- JavaScript -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>
     eruda.init();

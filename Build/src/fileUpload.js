@@ -6,6 +6,7 @@ export class FileUploadManager {
     this.fileInput = document.getElementById('file-input');
     this.preview = document.getElementById('upload-preview');
     this.selectedFiles = [];
+    this.uploading = false; // Prevent multiple uploads
     
     this.setupEventListeners();
   }
@@ -154,51 +155,81 @@ export class FileUploadManager {
   async uploadFiles() {
     if (this.selectedFiles.length === 0) return;
     
+    // Prevent multiple uploads
+    if (this.uploading) {
+      console.warn('Upload already in progress');
+      return;
+    }
+    
+    this.uploading = true;
+    
     try {
+      // Show upload progress
+      this.updatePreview();
+      const uploadBtn = this.preview.querySelector('button');
+      if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+      }
+      
       // Upload each file to the server
-      for (const file of this.selectedFiles) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('user', this.app.user);
-        formData.append('room', this.app.elements.roomSelect.value);
+      for (let i = 0; i < this.selectedFiles.length; i++) {
+        const file = this.selectedFiles[i];
         
-        // Upload to server
-        const uploadRes = await fetch(`${this.app.baseURL}/upload`, {
-          method: 'POST',
-          body: formData
-        });
-        
-        if (!uploadRes.ok) {
-          const error = await uploadRes.json();
-          throw new Error(error.error || 'Upload failed');
-        }
-        
-        const uploadData = await uploadRes.json();
-        
-        // Create file message data
-        const fileData = {
-          name: uploadData.originalName || file.name,
-          type: file.type,
-          size: file.size,
-          url: uploadData.url,
-          filename: uploadData.filename,
-          uploadedBy: this.app.user,
-          uploadedAt: uploadData.uploadedAt
-        };
-        
-        // Send as special FILE message
-        const fileMessage = `FILE:${JSON.stringify(fileData)}`;
-        
-        const room = this.app.elements.roomSelect.value;
-        const res = await fetch(`${this.app.baseURL}/chat/${room}?user=${encodeURIComponent(this.app.user)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: fileMessage }),
-        });
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Failed to send file message: ${errorText}`);
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('user', this.app.user);
+          formData.append('room', this.app.elements.roomSelect.value);
+          
+          // Upload to server
+          const uploadRes = await fetch(`${this.app.baseURL}/upload`, {
+            method: 'POST',
+            body: formData
+          });
+          
+          if (!uploadRes.ok) {
+            const error = await uploadRes.json();
+            throw new Error(error.error || 'Upload failed');
+          }
+          
+          const uploadData = await uploadRes.json();
+          
+          // Create file message data
+          const fileData = {
+            name: uploadData.originalName || file.name,
+            type: file.type,
+            size: file.size,
+            url: uploadData.url,
+            filename: uploadData.filename,
+            uploadedBy: this.app.user,
+            uploadedAt: uploadData.uploadedAt
+          };
+          
+          // Send as special FILE message
+          const fileMessage = `FILE:${JSON.stringify(fileData)}`;
+          
+          const room = this.app.elements.roomSelect.value;
+          const res = await fetch(`${this.app.baseURL}/chat/${room}?user=${encodeURIComponent(this.app.user)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: fileMessage }),
+          });
+          
+          if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Failed to send file message: ${errorText}`);
+          }
+          
+          // Update progress
+          if (uploadBtn) {
+            uploadBtn.textContent = `Uploaded ${i + 1}/${this.selectedFiles.length}...`;
+          }
+          
+        } catch (fileError) {
+          console.error(`Failed to upload ${file.name}:`, fileError);
+          alert(`Failed to upload ${file.name}: ${fileError.message}`);
+          // Continue with other files
         }
       }
       
@@ -209,11 +240,20 @@ export class FileUploadManager {
       this.closeModal();
       
       // Show success message
-      alert(`${this.selectedFiles.length} file(s) uploaded successfully!`);
+      alert(`Upload completed! ${this.selectedFiles.length} file(s) processed.`);
       
     } catch(e) {
       console.error('Upload failed:', e);
       alert('File upload failed: ' + e.message);
+    } finally {
+      this.uploading = false;
+      
+      // Reset upload button
+      const uploadBtn = this.preview.querySelector('button');
+      if (uploadBtn) {
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload Files';
+      }
     }
   }
   

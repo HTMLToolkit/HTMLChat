@@ -11,9 +11,13 @@ export class SearchManager {
   }
   
   setupEventListeners() {
-    // Search input
+    // Search input with debouncing
+    let searchTimeout;
     this.searchInput.addEventListener('input', () => {
-      this.performSearch();
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        this.performSearch();
+      }, 300); // 300ms debounce
     });
     
     // User filter checkbox
@@ -25,16 +29,21 @@ export class SearchManager {
       this.performSearch();
     });
     
-    // Username filter
+    // Username filter with debouncing
+    let userTimeout;
     this.usernameFilter.addEventListener('input', () => {
       if (this.userFilter.checked) {
-        this.performSearch();
+        clearTimeout(userTimeout);
+        userTimeout = setTimeout(() => {
+          this.performSearch();
+        }, 300);
       }
     });
     
     // Enter key to search
     this.searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
+        clearTimeout(searchTimeout);
         this.performSearch();
       }
     });
@@ -69,39 +78,64 @@ export class SearchManager {
     this.searchResults.innerHTML = '';
   }
   
-  performSearch() {
+  async performSearch() {
     const query = this.searchInput.value.trim().toLowerCase();
     if (!query) {
       this.searchResults.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Enter search terms above</div>';
       return;
     }
     
-    // Get all messages from current room
-    const currentRoom = this.app.elements.roomSelect.value;
-    const messages = this.app.loadFromStorage(`htmlchat_${currentRoom}`) || [];
+    // Show loading
+    this.searchResults.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">Searching...</div>';
     
-    // Filter messages
-    let filteredMessages = messages.filter(msg => {
-      // Text search
-      const textMatch = msg.text.toLowerCase().includes(query) || 
-                       msg.user.toLowerCase().includes(query);
+    try {
+      // Use setTimeout to make search non-blocking
+      await new Promise(resolve => setTimeout(resolve, 0));
       
-      // User filter
-      if (this.userFilter.checked && this.usernameFilter.value.trim()) {
-        const userMatch = msg.user.toLowerCase().includes(this.usernameFilter.value.trim().toLowerCase());
-        return textMatch && userMatch;
+      // Get all messages from current room
+      const currentRoom = this.app.elements.roomSelect.value;
+      const messages = this.app.loadFromStorage(`htmlchat_${currentRoom}`) || [];
+      
+      // Process in chunks to avoid blocking
+      const chunkSize = 50;
+      let filteredMessages = [];
+      
+      for (let i = 0; i < messages.length; i += chunkSize) {
+        const chunk = messages.slice(i, i + chunkSize);
+        
+        const chunkFiltered = chunk.filter(msg => {
+          // Text search
+          const textMatch = msg.text.toLowerCase().includes(query) || 
+                           msg.user.toLowerCase().includes(query);
+          
+          // User filter
+          if (this.userFilter.checked && this.usernameFilter.value.trim()) {
+            const userMatch = msg.user.toLowerCase().includes(this.usernameFilter.value.trim().toLowerCase());
+            return textMatch && userMatch;
+          }
+          
+          return textMatch;
+        });
+        
+        filteredMessages = filteredMessages.concat(chunkFiltered);
+        
+        // Allow UI to update between chunks
+        if (i % (chunkSize * 4) === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
       }
       
-      return textMatch;
-    });
-    
-    // Sort by time (most recent first)
-    filteredMessages = filteredMessages.sort((a, b) => b.time - a.time);
-    
-    // Limit results
-    filteredMessages = filteredMessages.slice(0, 50);
-    
-    this.displayResults(filteredMessages, query);
+      // Sort by time (most recent first)
+      filteredMessages = filteredMessages.sort((a, b) => b.time - a.time);
+      
+      // Limit results
+      filteredMessages = filteredMessages.slice(0, 100);
+      
+      this.displayResults(filteredMessages, query);
+    } catch (error) {
+      console.error('Search error:', error);
+      this.searchResults.innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Search failed. Please try again.</div>';
+    }
   }
   
   displayResults(messages, query) {

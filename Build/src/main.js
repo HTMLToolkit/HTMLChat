@@ -42,7 +42,7 @@ class HTMLChatApp {
       replyPreview: document.getElementById("reply-preview"),
       soundToggle: document.getElementById("sound-toggle")
     };
-    
+
     this.init();
   }
   
@@ -264,14 +264,20 @@ class HTMLChatApp {
         this.cancelReply();
       }
       
+      // Generate message ID for tracking
+      const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       const room = this.elements.roomSelect.value;
       const res = await fetch(`${this.baseURL}/chat/${room}?user=${encodeURIComponent(this.user)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: finalMessage }),
+        body: JSON.stringify({ text: finalMessage, messageId }),
       });
       
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`${res.status}: ${errorText}`);
+      }
       
       this.elements.input.value = "";
       
@@ -284,7 +290,13 @@ class HTMLChatApp {
       
     } catch(e) {
       console.error("Send failed:", e);
-      alert("Message failed to send. Please try again.");
+      
+      if (e.message.includes('403')) {
+        alert("Message blocked: " + e.message.split(': ')[1]);
+      } else {
+        alert("Message failed to send. Please try again.");
+      }
+      
       this.updateStatus(false);
     } finally {
       this.elements.sendBtn.disabled = false;
@@ -381,8 +393,21 @@ class HTMLChatApp {
   
   toggleSounds() {
     const isEnabled = this.soundManager.toggleSounds();
-    this.elements.soundToggle.textContent = isEnabled ? '🔊' : '🔇';
-    this.elements.soundToggle.classList.toggle('muted', !isEnabled);
+    const soundToggle = this.elements.soundToggle;
+    
+    // Update icons
+    const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
+    const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
+    
+    if (isEnabled) {
+      soundOnIcon.style.display = 'inline';
+      soundOffIcon.style.display = 'none';
+      soundToggle.classList.remove('muted');
+    } else {
+      soundOnIcon.style.display = 'none';
+      soundOffIcon.style.display = 'inline';
+      soundToggle.classList.add('muted');
+    }
   }
 }
 
