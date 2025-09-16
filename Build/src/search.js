@@ -189,21 +189,37 @@ export class SearchManager {
     this.closeModal();
     
     // Try to find the message in current chat
-    const existingMessage = document.getElementById(messageId);
+    let existingMessage = document.getElementById(messageId);
+    
+    // Also try with data-message-id attribute
+    if (!existingMessage) {
+      existingMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+    }
+    
     if (existingMessage) {
-      this.app.messageRenderer.highlightMessage(messageId);
+      this.app.messageRenderer.highlightMessage(existingMessage.id);
       return;
     }
     
     // If not found, refresh messages and then try to highlight
     this.app.fetchMessages(true).then(() => {
       setTimeout(() => {
-        // Generate the message ID that would be created
-        const messages = this.app.loadFromStorage(`htmlchat_${this.app.elements.roomSelect.value}`) || [];
-        const messageIndex = messages.findIndex(msg => msg.time === timestamp);
-        if (messageIndex !== -1) {
-          const generatedId = `msg-${timestamp}-${messageIndex}`;
-          this.app.messageRenderer.highlightMessage(generatedId);
+        // Try to find by messageId again
+        let foundMessage = document.getElementById(messageId);
+        if (!foundMessage) {
+          foundMessage = document.querySelector(`[data-message-id="${messageId}"]`);
+        }
+        
+        if (foundMessage) {
+          this.app.messageRenderer.highlightMessage(foundMessage.id);
+        } else {
+          // Fallback: try to find by timestamp
+          const messages = this.app.loadFromStorage(`htmlchat_${this.app.elements.roomSelect.value}`) || [];
+          const messageIndex = messages.findIndex(msg => msg.time === timestamp);
+          if (messageIndex !== -1) {
+            const generatedId = `msg-${timestamp}-${messageIndex}`;
+            this.app.messageRenderer.highlightMessage(generatedId);
+          }
         }
       }, 500);
     });

@@ -42,7 +42,7 @@ class HTMLChatApp {
       replyPreview: document.getElementById("reply-preview"),
       soundToggle: document.getElementById("sound-toggle")
     };
-
+    
     this.init();
   }
   
@@ -85,6 +85,27 @@ class HTMLChatApp {
     
     // Initialize managers
     await this.notificationManager.init();
+    
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+    
+    // Set initial sound toggle state
+    const soundsEnabled = this.soundManager.isSoundEnabled();
+    const soundToggle = this.elements.soundToggle;
+    const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
+    const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
+    
+    if (soundsEnabled) {
+      soundOnIcon.style.display = 'inline';
+      soundOffIcon.style.display = 'none';
+      soundToggle.classList.remove('muted');
+    } else {
+      soundOnIcon.style.display = 'none';
+      soundOffIcon.style.display = 'inline';
+      soundToggle.classList.add('muted');
+    }
     
     // Start the app
     await this.fetchMessages(true);
@@ -152,7 +173,7 @@ class HTMLChatApp {
   }
   
   updateWelcome() {
-    this.elements.welcomeDiv.innerHTML = `Welcome to HTMLChat, <b>${this.user}</b>! You are now in room <b>${this.elements.roomSelect.value}</b>.`;
+    this.elements.welcomeDiv.innerHTML = `Welcome to HTMLChat Enhanced, <b>${this.user}</b>! You are now in room <b>${this.elements.roomSelect.value}</b>.`;
   }
   
   updateStatus(connected) {
@@ -211,7 +232,7 @@ class HTMLChatApp {
       const users = data.users || [];
       const userCount = data.userCount || users.length;
       
-      // Check for new messages for notifications
+      // Check for new messages for notifications and update stored message IDs
       const lastMessageCount = this.loadFromStorage(`htmlchat_${this.elements.roomSelect.value}_count`) || 0;
       if (messages.length > lastMessageCount && !this.isVisible && lastMessageCount > 0) {
         const newMessages = messages.slice(lastMessageCount);
@@ -224,6 +245,7 @@ class HTMLChatApp {
       }
       this.saveToStorage(`htmlchat_${this.elements.roomSelect.value}_count`, messages.length);
       
+      // Store messages with proper IDs for deletion
       this.elements.chatBox.innerHTML = this.messageRenderer.renderMessages(messages);
       this.scrollToBottom();
       

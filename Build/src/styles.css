@@ -52,10 +52,22 @@ body {
   font-size: 16px;
   padding: 4px 8px;
   border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-btn:hover {
   background: rgba(255,255,255,0.2);
+}
+
+.header-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.header-btn.muted {
+  opacity: 0.5;
 }
 
 .minimize-btn {
@@ -96,6 +108,9 @@ body {
   padding: 4px 8px;
   cursor: pointer;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toolbar-btn:hover {
@@ -104,6 +119,11 @@ body {
 
 .toolbar-btn:active {
   border: 1px inset #ccc;
+}
+
+.toolbar-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .user-count {
@@ -386,10 +406,18 @@ body {
   cursor: pointer;
   font-size: 10px;
   margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .status-btn:hover {
   color: #333;
+}
+
+.status-btn svg {
+  width: 12px;
+  height: 12px;
 }
 
 /* Context Menu */
@@ -540,6 +568,15 @@ body {
 .upload-icon {
   font-size: 48px;
   margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.upload-icon svg {
+  width: 48px;
+  height: 48px;
+  color: #666;
 }
 
 .upload-limit {
@@ -573,6 +610,15 @@ body {
   font-size: 24px;
   min-width: 32px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #666;
 }
 
 .preview-info {

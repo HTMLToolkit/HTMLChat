@@ -128,6 +128,11 @@ export class FileUploadManager {
     `;
     
     this.preview.innerHTML = html + uploadBtn;
+    
+    // Re-initialize Lucide icons for the new content
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
   }
   
   removeFile(index) {
@@ -136,12 +141,12 @@ export class FileUploadManager {
   }
   
   getFileIcon(mimeType) {
-    if (mimeType.startsWith('image/')) return '🖼️';
-    if (mimeType.startsWith('audio/')) return '🎵';
-    if (mimeType === 'application/pdf') return '📄';
-    if (mimeType.includes('word')) return '📝';
-    if (mimeType === 'text/plain') return '📄';
-    return '📎';
+    if (mimeType.startsWith('image/')) return '<i data-lucide="image"></i>';
+    if (mimeType.startsWith('audio/')) return '<i data-lucide="music"></i>';
+    if (mimeType === 'application/pdf') return '<i data-lucide="file-text"></i>';
+    if (mimeType.includes('word')) return '<i data-lucide="file-text"></i>';
+    if (mimeType === 'text/plain') return '<i data-lucide="file-text"></i>';
+    return '<i data-lucide="paperclip"></i>';
   }
   
   formatFileSize(bytes) {

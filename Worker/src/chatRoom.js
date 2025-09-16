@@ -71,8 +71,35 @@ export default class ChatRoom {
 
       // Clean up expired bans
       await this.cleanupExpiredBans();
+      
+      // Clean up expired kicks
+      await this.cleanupExpiredKicks();
     } catch (error) {
       console.error('Cleanup error:', error);
+    }
+  }
+
+  async cleanupExpiredKicks() {
+    const kickLists = await this.state.storage.list({ prefix: 'kicked_users:' });
+    const now = Date.now();
+    
+    for (const [key, kickedUsers] of kickLists) {
+      let changed = false;
+      
+      for (const [username, kick] of Object.entries(kickedUsers)) {
+        if (now > kick.expires) {
+          delete kickedUsers[username];
+          changed = true;
+        }
+      }
+      
+      if (changed) {
+        if (Object.keys(kickedUsers).length > 0) {
+          await this.state.storage.put(key, kickedUsers);
+        } else {
+          await this.state.storage.delete(key);
+        }
+      }
     }
   }
 
@@ -94,6 +121,11 @@ export default class ChatRoom {
   }
 
   async updateUserPresence(room, username) {
+    // Check if user is kicked before allowing presence update
+    if (await this.isKicked(username, room)) {
+      return { error: 'User is kicked from this room' };
+    }
+    
     const key = `users:${room}`;
     const users = await this.state.storage.get(key) || {};
     users[username] = Date.now();
@@ -132,6 +164,23 @@ export default class ChatRoom {
     return moderators.includes(username.toLowerCase());
   }
 
+  async isKicked(username, room) {
+    const kickKey = `kicked_users:${room}`;
+    const kickedUsers = await this.state.storage.get(kickKey) || {};
+    const kick = kickedUsers[username.toLowerCase()];
+    
+    if (!kick) return false;
+    
+    // Check if kick has expired
+    if (Date.now() > kick.expires) {
+      delete kickedUsers[username.toLowerCase()];
+      await this.state.storage.put(kickKey, kickedUsers);
+      return false;
+    }
+    
+    return true;
+  }
+
   async isBanned(username) {
     const bannedUsers = await this.state.storage.get('banned_users') || {};
     const ban = bannedUsers[username.toLowerCase()];
@@ -139,7 +188,7 @@ export default class ChatRoom {
     if (!ban) return false;
     
     // Check if ban has expired
-    if (ban.expires && Date.now() > ban.expires) {
+    if (ban.expires !== null && ban.expires !== undefined && Date.now() > ban.expires) {
       delete bannedUsers[username.toLowerCase()];
       await this.state.storage.put('banned_users', bannedUsers);
       return false;
@@ -148,10 +197,15 @@ export default class ChatRoom {
     return true;
   }
 
-  async moderateMessage(text, user) {
+  async moderateMessage(text, user, room) {
     // Check if user is banned
     if (await this.isBanned(user)) {
       return { allowed: false, reason: 'User is banned' };
+    }
+    
+    // Check if user is kicked
+    if (await this.isKicked(user, room)) {
+      return { allowed: false, reason: 'User is kicked from this room' };
     }
 
     // Simple spam detection - check for repeated messages
@@ -224,7 +278,7 @@ export default class ChatRoom {
       }
 
       // Moderate message
-      const moderation = await this.moderateMessage(text, user);
+      const moderation = await this.moderateMessage(text, user, room);
       if (!moderation.allowed) {
         return textResponse(moderation.reason, 403);
       }
@@ -291,27 +345,35 @@ export default class ChatRoom {
     const messages = await this.state.storage.get(key) || [];
     const messageIndex = messages.findIndex(msg => msg.id === messageId);
     
+    console.log(`Delete request: room=${room}, messageId=${messageId}, user=${user}`); // Debug
+    console.log(`Found message at index: ${messageIndex}`); // Debug
+    
     if (messageIndex === -1) {
       return textResponse('Message not found', 404);
     }
 
     const message = messages[messageIndex];
+    console.log(`Message to delete:`, message); // Debug
     
     // Check permissions - can delete own message or if moderator
     const isMod = await this.isModerator(user);
     if (message.user !== user && !isMod) {
-      return textResponse('Unauthorized', 403);
+      console.log(`Permission denied: user=${user}, messageUser=${message.user}, isMod=${isMod}`); // Debug
+      return textResponse('Unauthorized - can only delete own messages or need moderator privileges', 403);
     }
+
+    // Store original message info for system message
+    const originalUser = message.user;
+    const originalText = message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text;
 
     // Remove message
     messages.splice(messageIndex, 1);
-    await this.state.storage.put(key, messages);
 
     // Add system message about deletion
     const systemMessage = {
-      id: `sys_${Date.now()}`,
+      id: `sys_del_${Date.now()}`,
       user: '*** System ***',
-      text: `Message deleted by ${user}`,
+      text: `Message from ${originalUser} deleted by ${user}${originalUser !== user ? ' (moderator action)' : ''}`,
       time: Date.now(),
       system: true
     };
@@ -319,7 +381,12 @@ export default class ChatRoom {
     messages.push(systemMessage);
     await this.state.storage.put(key, messages);
 
-    return jsonResponse({ success: true });
+    console.log('Message deleted successfully'); // Debug
+    return jsonResponse({ 
+      success: true, 
+      deleted: true,
+      systemMessage: systemMessage 
+    });
   }
 
   async handlePrivateMessages(request, conversationId, user) {
@@ -424,20 +491,33 @@ export default class ChatRoom {
   }
 
   async kickUser(room, targetUser, moderator, reason = '') {
+    // Add user to temporary kick list (5 minute kick)
+    const kickKey = `kicked_users:${room}`;
+    const kickedUsers = await this.state.storage.get(kickKey) || {};
+    
+    kickedUsers[targetUser.toLowerCase()] = {
+      kickedBy: moderator,
+      reason: reason,
+      timestamp: Date.now(),
+      expires: Date.now() + (5 * 60 * 1000) // 5 minutes
+    };
+    
+    await this.state.storage.put(kickKey, kickedUsers);
+    
     // Remove user from room
-    const key = `users:${room}`;
-    const users = await this.state.storage.get(key) || {};
+    const usersKey = `users:${room}`;
+    const users = await this.state.storage.get(usersKey) || {};
     delete users[targetUser];
-    await this.state.storage.put(key, users);
+    await this.state.storage.put(usersKey, users);
     
     // Add system message
     const messagesKey = `messages:${room}`;
     const messages = await this.state.storage.get(messagesKey) || [];
     
     const systemMessage = {
-      id: `sys_${Date.now()}`,
+      id: `sys_kick_${Date.now()}`,
       user: '*** System ***',
-      text: `${targetUser} was kicked by ${moderator}${reason ? ` (${reason})` : ''}`,
+      text: `${targetUser} was kicked by ${moderator}${reason ? ` (${reason})` : ''} - banned for 5 minutes`,
       time: Date.now(),
       system: true
     };
@@ -445,7 +525,11 @@ export default class ChatRoom {
     messages.push(systemMessage);
     await this.state.storage.put(messagesKey, messages);
     
-    return jsonResponse({ success: true, message: `User ${targetUser} kicked` });
+    return jsonResponse({ 
+      success: true, 
+      message: `User ${targetUser} kicked for 5 minutes`,
+      systemMessage: systemMessage 
+    });
   }
 
   async addModerator(targetUser, moderator) {

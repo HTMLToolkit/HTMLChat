@@ -34,13 +34,22 @@ export class ContextMenuManager {
   show(event, messageElement) {
     event.preventDefault();
     
+    // Get message ID from multiple sources for reliability
+    const messageId = messageElement.dataset.messageId || 
+                     messageElement.id || 
+                     messageElement.getAttribute('data-message-id');
+    
+    console.log('Context menu - found message ID:', messageId); // Debug
+    
     this.currentMessage = {
       element: messageElement,
       user: messageElement.dataset.user,
       time: messageElement.dataset.time,
-      id: messageElement.dataset.messageId || messageElement.id,
+      id: messageId,
       text: messageElement.querySelector('.text').textContent
     };
+    
+    console.log('Context menu - current message:', this.currentMessage); // Debug
     
     // Update menu items based on context
     this.updateMenuItems();
@@ -145,7 +154,7 @@ export class ContextMenuManager {
     );
   }
   
-  deleteMessage() {
+  async deleteMessage() {
     if (!this.canDeleteMessage()) return;
     
     const confirmMsg = this.currentMessage.user === this.app.user 
@@ -153,22 +162,37 @@ export class ContextMenuManager {
       : `Delete message from ${this.currentMessage.user}?`;
       
     if (confirm(confirmMsg)) {
-      // Since we don't have server-side delete, just hide the message locally
-      this.currentMessage.element.style.display = 'none';
-      
-      // In a real implementation, you'd send a DELETE request to the server
-      console.log('Message deleted locally:', this.currentMessage.id);
-      
-      // Show feedback
-      this.app.elements.chatBox.insertAdjacentHTML('beforeend', `
-        <div class="msg system">
-          <span class="time">[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
-          <span class="user">*** System ***</span>
-          <span class="text">Message deleted by ${this.app.user}</span>
-        </div>
-      `);
-      
-      this.app.scrollToBottom();
+      try {
+        const room = this.app.elements.roomSelect.value;
+        const messageId = this.currentMessage.id;
+        
+        console.log('Deleting message:', messageId); // Debug log
+        
+        const res = await fetch(
+          `${this.app.baseURL}/chat/${room}?user=${encodeURIComponent(this.app.user)}&messageId=${encodeURIComponent(messageId)}`,
+          { 
+            method: "DELETE",
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`${res.status}: ${errorText}`);
+        }
+        
+        const result = await res.json();
+        console.log('Delete result:', result); // Debug log
+        
+        // Refresh messages to show deletion
+        await this.app.fetchMessages(true);
+        
+      } catch(e) {
+        console.error('Delete failed:', e);
+        alert('Failed to delete message: ' + e.message);
+      }
     }
   }
   
@@ -176,48 +200,68 @@ export class ContextMenuManager {
     this.app.pmManager.openPrivateMessage(this.currentMessage.user);
   }
   
-  kickUser() {
+  async kickUser() {
     if (!this.canModerateUser()) return;
     
     const reason = prompt(`Kick ${this.currentMessage.user}? Enter reason (optional):`);
     if (reason !== null) { // null means cancelled
-      // In real implementation, send kick request to server
-      console.log(`Kicking user ${this.currentMessage.user}, reason: ${reason}`);
-      
-      // Show mod action in chat
-      this.app.elements.chatBox.insertAdjacentHTML('beforeend', `
-        <div class="msg system">
-          <span class="time">[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
-          <span class="user">*** ${this.app.user} ***</span>
-          <span class="text">kicked ${this.currentMessage.user}${reason ? ` (${reason})` : ''}</span>
-        </div>
-      `);
-      
-      this.app.scrollToBottom();
+      try {
+        const res = await fetch(`${this.app.baseURL}/mod/${this.app.elements.roomSelect.value}?user=${encodeURIComponent(this.app.user)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: 'kick',
+            targetUser: this.currentMessage.user,
+            reason: reason
+          })
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText);
+        }
+        
+        // Refresh messages and users
+        await this.app.fetchMessages(true);
+        
+      } catch(e) {
+        console.error('Kick failed:', e);
+        alert('Failed to kick user: ' + e.message);
+      }
     }
   }
   
-  banUser() {
+  async banUser() {
     if (!this.canModerateUser()) return;
     
     const reason = prompt(`Ban ${this.currentMessage.user}? Enter reason (optional):`);
     if (reason !== null) {
       const duration = prompt('Ban duration (minutes, or leave empty for permanent):');
       
-      // In real implementation, send ban request to server
-      console.log(`Banning user ${this.currentMessage.user}, reason: ${reason}, duration: ${duration || 'permanent'}`);
-      
-      // Show mod action in chat
-      const durationText = duration ? ` for ${duration} minutes` : ' permanently';
-      this.app.elements.chatBox.insertAdjacentHTML('beforeend', `
-        <div class="msg system">
-          <span class="time">[${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
-          <span class="user">*** ${this.app.user} ***</span>
-          <span class="text">banned ${this.currentMessage.user}${durationText}${reason ? ` (${reason})` : ''}</span>
-        </div>
-      `);
-      
-      this.app.scrollToBottom();
+      try {
+        const res = await fetch(`${this.app.baseURL}/mod/${this.app.elements.roomSelect.value}?user=${encodeURIComponent(this.app.user)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: 'ban',
+            targetUser: this.currentMessage.user,
+            reason: reason,
+            duration: duration ? parseInt(duration) : null
+          })
+        });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(errorText);
+        }
+        
+        // Refresh messages and users
+        await this.app.fetchMessages(true);
+        
+      } catch(e) {
+        console.error('Ban failed:', e);
+        alert('Failed to ban user: ' + e.message);
+      }
     }
   }
 }

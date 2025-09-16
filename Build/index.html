@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HTMLChat Enhanced</title>
+  <title>HTMLChat</title>
   <!-- Favicon for browsers -->
   <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-512x512.png">
   <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-512x512.png">
-  
+
   <!-- Apple touch icon (iOS) -->
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-512x512.png">
-  
+
   <!-- Manifest -->
   <link rel="manifest" href="src/manifest.json">
-  
+
   <!-- External Styles -->
   <link rel="stylesheet" href="src/styles.css">
 </head>
+
 <body>
   <!-- Context Menu -->
   <div id="context-menu" class="context-menu">
@@ -55,7 +57,9 @@
       <div class="modal-body">
         <div class="upload-area" id="upload-area">
           <div class="upload-text">
-            <div class="upload-icon">📁</div>
+            <div class="upload-icon">
+              <i data-lucide="folder" style="width: 48px; height: 48px;"></i>
+            </div>
             <p>Drag & drop files here or click to browse</p>
             <p class="upload-limit">Max 5MB • Images, documents, audio</p>
           </div>
@@ -78,8 +82,8 @@
 
   <div class="container">
     <div class="header">
-      <h1>HTMLChat Enhanced</h1>
-      <p>version v2.0.0</p>
+      <h1>HTMLChat</h1>
+      <p>version 0.2.0</p>
       <div class="header-controls">
         <button class="header-btn" onclick="toggleSounds()" id="sound-toggle" title="Toggle Sounds">
           <i data-lucide="volume-2" class="sound-on-icon"></i>
@@ -127,7 +131,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="user-list">
         <div class="user-list-header">Users</div>
         <div id="users"></div>
@@ -152,18 +156,24 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-  
+
   <!-- Audio files (using data URLs for retro sounds) -->
   <audio id="sound-message" preload="auto">
-    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB" type="audio/wav">
+    <source
+      src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
+      type="audio/wav">
   </audio>
-  
+
   <audio id="sound-pm" preload="auto">
-    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB" type="audio/wav">
+    <source
+      src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
+      type="audio/wav">
   </audio>
-  
+
   <audio id="sound-join" preload="auto">
-    <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB" type="audio/wav">
+    <source
+      src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
+      type="audio/wav">
   </audio>
 
   <!-- JavaScript -->
@@ -172,5 +182,14 @@
     eruda.init();
   </script>
   <script type="module" src="src/main.js"></script>
+  <script>
+    // Initialize Lucide icons when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+  </script>
 </body>
+
 </html>

@@ -24,6 +24,8 @@
   },
   "homepage": "https://github.com/HTMLToolkit/HTMLChat#readme",
   "dependencies": {
+    "dompurify": "^3.2.6",
+    "marked": "^16.3.0",
     "vite": "^7.1.5"
   }
 }
