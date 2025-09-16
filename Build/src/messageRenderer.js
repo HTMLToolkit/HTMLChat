@@ -113,18 +113,20 @@ export class MessageRenderer {
         if (fileAttachment.type.startsWith('image/')) {
           messageHtml += `
             <span class="text">
-              <img src="${fileAttachment.data}" 
+              <img src="${fileAttachment.url || fileAttachment.data}" 
                    alt="${fileAttachment.name}" 
                    class="image-attachment"
-                   onclick="window.open('${fileAttachment.data}', '_blank')">
+                   onclick="window.open('${fileAttachment.url || fileAttachment.data}', '_blank')"
+                   title="Uploaded by ${fileAttachment.uploadedBy || 'Unknown'} ${fileAttachment.uploadedAt ? 'on ' + new Date(fileAttachment.uploadedAt).toLocaleString() : ''}">
             </span>
           `;
         } else {
           messageHtml += `
             <span class="text">
-              <a href="${fileAttachment.data}" 
-                 download="${fileAttachment.name}" 
-                 class="file-attachment">
+              <a href="${fileAttachment.url || fileAttachment.data}" 
+                 ${fileAttachment.filename ? `download="${fileAttachment.name}"` : 'target="_blank"'}
+                 class="file-attachment"
+                 title="Uploaded by ${fileAttachment.uploadedBy || 'Unknown'} ${fileAttachment.uploadedAt ? 'on ' + new Date(fileAttachment.uploadedAt).toLocaleString() : ''}">
                 📄 ${fileAttachment.name} (${this.formatFileSize(fileAttachment.size)})
               </a>
             </span>

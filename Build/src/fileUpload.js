@@ -155,15 +155,35 @@ export class FileUploadManager {
     if (this.selectedFiles.length === 0) return;
     
     try {
-      // Since we don't have a real file server, we'll convert to base64 and send as message
+      // Upload each file to the server
       for (const file of this.selectedFiles) {
-        const base64Data = await this.fileToBase64(file);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('user', this.app.user);
+        formData.append('room', this.app.elements.roomSelect.value);
         
+        // Upload to server
+        const uploadRes = await fetch(`${this.app.baseURL}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!uploadRes.ok) {
+          const error = await uploadRes.json();
+          throw new Error(error.error || 'Upload failed');
+        }
+        
+        const uploadData = await uploadRes.json();
+        
+        // Create file message data
         const fileData = {
-          name: file.name,
+          name: uploadData.originalName || file.name,
           type: file.type,
           size: file.size,
-          data: base64Data
+          url: uploadData.url,
+          filename: uploadData.filename,
+          uploadedBy: this.app.user,
+          uploadedAt: uploadData.uploadedAt
         };
         
         // Send as special FILE message
@@ -176,7 +196,10 @@ export class FileUploadManager {
           body: JSON.stringify({ text: fileMessage }),
         });
         
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Failed to send file message: ${errorText}`);
+        }
       }
       
       // Refresh messages to show uploaded files
@@ -190,7 +213,7 @@ export class FileUploadManager {
       
     } catch(e) {
       console.error('Upload failed:', e);
-      alert('File upload failed. Please try again.');
+      alert('File upload failed: ' + e.message);
     }
   }
   

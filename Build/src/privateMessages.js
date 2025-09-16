@@ -144,20 +144,20 @@ export class PrivateMessageManager {
     window.sendBtn.textContent = '...';
     
     try {
-      // Store PM locally (since we don't have a PM backend yet)
-      const pmData = {
-        from: this.app.user,
-        to: username,
-        text: message,
-        time: Date.now()
-      };
+      // Generate conversation ID (sorted usernames for consistency)
+      const conversationId = [this.app.user, username].sort().join('_');
       
-      // Add to window messages
-      window.messages.push(pmData);
-      this.renderPMMessages(username);
+      // Send PM to server
+      const res = await fetch(`${this.app.baseURL}/pm/${conversationId}?user=${encodeURIComponent(this.app.user)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: message, to: username })
+      });
       
-      // Save to storage
-      this.savePMHistory(username, window.messages);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText);
+      }
       
       // Clear input
       window.input.value = '';
@@ -165,23 +165,12 @@ export class PrivateMessageManager {
       // Play PM sound
       this.app.soundManager.playSound('pm');
       
-      // Show notification to simulate receiving PM (for demo)
-      setTimeout(() => {
-        const response = {
-          from: username,
-          to: this.app.user,
-          text: `Thanks for the message: "${message}"`,
-          time: Date.now()
-        };
-        window.messages.push(response);
-        this.renderPMMessages(username);
-        this.savePMHistory(username, window.messages);
-        this.app.soundManager.playSound('pm');
-      }, 1000 + Math.random() * 2000);
+      // Refresh PM messages
+      await this.loadPMHistory(username);
       
     } catch(e) {
       console.error('PM send failed:', e);
-      alert('Failed to send private message');
+      alert('Failed to send private message: ' + e.message);
     } finally {
       window.sendBtn.disabled = false;
       window.sendBtn.textContent = 'Send';
@@ -215,16 +204,40 @@ export class PrivateMessageManager {
     window.chat.scrollTop = window.chat.scrollHeight;
   }
   
-  loadPMHistory(username) {
+  async loadPMHistory(username) {
     try {
+      // Generate conversation ID (sorted usernames for consistency)
+      const conversationId = [this.app.user, username].sort().join('_');
+      
+      // Fetch from server
+      const res = await fetch(`${this.app.baseURL}/pm/${conversationId}?user=${encodeURIComponent(this.app.user)}`);
+      
+      if (res.ok) {
+        const data = await res.json();
+        const window = this.windows.get(username);
+        if (window) {
+          window.messages = data.messages || [];
+          this.renderPMMessages(username);
+        }
+      } else {
+        console.warn('Failed to load PM history:', res.status);
+        // Fallback to local storage
+        const history = this.app.loadFromStorage(`pm_history_${username}`) || [];
+        const window = this.windows.get(username);
+        if (window) {
+          window.messages = history;
+          this.renderPMMessages(username);
+        }
+      }
+    } catch(e) {
+      console.warn('Failed to load PM history:', e);
+      // Fallback to local storage
       const history = this.app.loadFromStorage(`pm_history_${username}`) || [];
       const window = this.windows.get(username);
       if (window) {
         window.messages = history;
         this.renderPMMessages(username);
       }
-    } catch(e) {
-      console.warn('Failed to load PM history:', e);
     }
   }
   
