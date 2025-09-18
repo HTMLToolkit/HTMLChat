@@ -1,5 +1,9 @@
 // Import modules
 import { SoundManager } from "./soundManager.js";
+import { 
+  Volume2, VolumeX, Search, Reply, Trash2, Mail, UserX, Ban, X, 
+  Folder, Paperclip, Bell, Image, Music, FileText, Settings 
+} from 'lucide';
 import { MessageRenderer } from "./messageRenderer.js";
 import { PrivateMessageManager } from "./privateMessages.js";
 import { FileUploadManager } from "./fileUpload.js";
@@ -20,6 +24,26 @@ class HTMLChatApp {
     this.lastMessageTime = 0;
     this.lastFetchTime = 0;
     this.currentReplyTo = null;
+
+    // Icon mappings for lucide
+    this.icons = {
+      'volume-2': Volume2,
+      'volume-x': VolumeX,
+      'search': Search,
+      'reply': Reply,
+      'trash-2': Trash2,
+      'mail': Mail,
+      'user-x': UserX,
+      'ban': Ban,
+      'x': X,
+      'folder': Folder,
+      'paperclip': Paperclip,
+      'bell': Bell,
+      'image': Image,
+      'music': Music,
+      'file-text': FileText,
+      'settings': Settings
+    };
 
     // Initialize managers
     this.soundManager = new SoundManager();
@@ -44,6 +68,84 @@ class HTMLChatApp {
     };
 
     this.init();
+  }
+
+  // Helper method to create lucide icons
+  createIcon(iconName, options = {}) {
+    const IconComponent = this.icons[iconName];
+    if (!IconComponent) {
+      console.warn(`Icon "${iconName}" not found`);
+      return null;
+    }
+    
+    const size = options.size || 16;
+    const strokeWidth = options.strokeWidth || 2;
+    
+    // Create SVG element
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', size);
+    svg.setAttribute('height', size);
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', strokeWidth);
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    
+    // Add paths from the icon component
+    IconComponent.forEach(pathData => {
+      if (pathData && pathData[0] === 'path') {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData[1].d || '');
+        svg.appendChild(path);
+      } else if (pathData && pathData[0] === 'circle') {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', pathData[1].cx || '');
+        circle.setAttribute('cy', pathData[1].cy || '');
+        circle.setAttribute('r', pathData[1].r || '');
+        svg.appendChild(circle);
+      } else if (pathData && pathData[0] === 'line') {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', pathData[1].x1 || '');
+        line.setAttribute('y1', pathData[1].y1 || '');
+        line.setAttribute('x2', pathData[1].x2 || '');
+        line.setAttribute('y2', pathData[1].y2 || '');
+        svg.appendChild(line);
+      }
+    });
+    
+    if (options.className) {
+      svg.setAttribute('class', options.className);
+    }
+    
+    if (options.style) {
+      Object.assign(svg.style, options.style);
+    }
+    
+    return svg;
+  }
+
+  // Initialize all icons in the DOM
+  initializeIcons() {
+    // Find all elements with data-lucide attributes and replace them
+    const elementsWithIcons = document.querySelectorAll('[data-lucide]');
+    elementsWithIcons.forEach(element => {
+      const iconName = element.getAttribute('data-lucide');
+      const existingStyles = {
+        width: element.style.width || '16px',
+        height: element.style.height || '16px'
+      };
+      
+      const iconElement = this.createIcon(iconName, {
+        size: parseInt(existingStyles.width) || 16,
+        className: element.className,
+        style: existingStyles
+      });
+      
+      if (iconElement) {
+        element.parentNode.replaceChild(iconElement, element);
+      }
+    });
   }
 
   // Simple storage helpers
@@ -86,26 +188,20 @@ class HTMLChatApp {
     // Initialize managers
     await this.notificationManager.init();
 
-    // Initialize Lucide icons
-    if (typeof lucide !== "undefined") {
-      lucide.createIcons();
-    }
+    // Initialize Lucide icons (npm module)
+    this.initializeIcons();
 
     // Set initial sound toggle state
     const soundsEnabled = this.soundManager.isSoundEnabled();
     const soundToggle = this.elements.soundToggle;
 
-    // Wait a bit for Lucide to initialize, then set the state
+  // Wait a bit for icons to initialize, then set the state
     setTimeout(() => {
-      const soundOnIcon = soundToggle.querySelector(
-        '.sound-on-icon, [data-lucide="volume-2"]'
-      );
-      const soundOffIcon = soundToggle.querySelector(
-        '.sound-off-icon, [data-lucide="volume-x"]'
-      );
+      const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
+      const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
 
-      console.log("Initial sound state:", soundsEnabled); // Debug
-      console.log("Initial icons found:", { soundOnIcon, soundOffIcon }); // Debug
+  console.log("Initial sound state:", soundsEnabled); // Debug
+  console.log("Initial icons found:", { soundOnIcon, soundOffIcon }); // Debug
 
       if (soundsEnabled) {
         if (soundOnIcon) {
@@ -316,9 +412,7 @@ class HTMLChatApp {
       this.scrollToBottom();
 
       // Re-initialize Lucide icons for new messages
-      if (typeof lucide !== "undefined") {
-        lucide.createIcons();
-      }
+      this.initializeIcons();
 
       this.updateUserList(users, userCount);
 
@@ -440,6 +534,22 @@ class HTMLChatApp {
     this.scheduleNextRefresh(15000);
   }
 
+  // Manually trigger a refresh from UI
+  async manualRefresh() {
+    try {
+      // cancel any pending timer so we don't double-fetch
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+      }
+      // force fetch latest
+      await this.fetchMessages(true);
+      // schedule next automatic refresh
+      this.scheduleNextRefresh(15000);
+    } catch (e) {
+      console.error('Manual refresh failed:', e);
+    }
+  }
+
   scheduleNextRefresh(delay = 20000) {
     if (this.refreshTimer) {
       clearTimeout(this.refreshTimer);
@@ -514,13 +624,9 @@ class HTMLChatApp {
 
     console.log("Sound toggle clicked, enabled:", isEnabled); // Debug
 
-    // Update icons - they might be SVG elements after Lucide initialization
-    const soundOnIcon = soundToggle.querySelector(
-      '.sound-on-icon, [data-lucide="volume-2"]'
-    );
-    const soundOffIcon = soundToggle.querySelector(
-      '.sound-off-icon, [data-lucide="volume-x"]'
-    );
+    // Update icons 
+    const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
+    const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
 
     console.log("Found icons:", { soundOnIcon, soundOffIcon }); // Debug
 
@@ -557,11 +663,15 @@ window.openSearchModal = () => window.app.searchManager.openModal();
 window.closeSearchModal = () => window.app.searchManager.closeModal();
 window.openUploadModal = () => window.app.fileManager.openModal();
 window.closeUploadModal = () => window.app.fileManager.closeModal();
+window.openSettingsModal = () => window.app.notificationManager.showSettings();
+window.closeSettingsModal = () => window.app.notificationManager.closeSettings();
 window.cancelReply = () => window.app.cancelReply();
 window.toggleSounds = () => window.app?.toggleSounds();
 window.requestNotificationPermission = () => window.app.notificationManager.requestPermission();
 window.dismissNotificationBanner = () => window.app.notificationManager.dismissBanner();
 window.showNotificationSettings = () => window.app.notificationManager.showSettings();
+// Manual reload handler for status bar button
+window.reloadChats = () => window.app?.manualRefresh();
 
 // Export chat function
 window.exportChat = function () {

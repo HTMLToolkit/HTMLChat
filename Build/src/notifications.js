@@ -6,6 +6,7 @@ export class NotificationManager {
     this.showDesktop = this.loadSetting('desktop_notifications', true);
     this.playSound = this.loadSetting('notification_sounds', true);
     this.banner = document.getElementById('notification-banner');
+    this.settingsModal = null;
   }
   
   loadSetting(key, defaultValue) {
@@ -39,6 +40,100 @@ export class NotificationManager {
     
     // Update permission status
     this.permission = Notification.permission;
+    
+    // Initialize settings modal
+    this.initializeSettingsModal();
+  }
+  
+  initializeSettingsModal() {
+    this.settingsModal = document.getElementById('settings-modal');
+    
+    // Get toggle elements
+    const desktopToggle = document.getElementById('desktop-notifications-toggle');
+    const soundsToggle = document.getElementById('notification-sounds-toggle');
+    const allNotificationsToggle = document.getElementById('all-notifications-toggle');
+    const messageSoundsToggle = document.getElementById('message-sounds-toggle');
+    const permissionBtn = document.getElementById('request-permission-btn');
+    
+    // Set initial states
+    if (desktopToggle) {
+      desktopToggle.checked = this.showDesktop;
+      desktopToggle.addEventListener('change', () => {
+        this.toggleDesktopNotifications();
+        this.updatePermissionStatus();
+      });
+    }
+    
+    if (soundsToggle) {
+      soundsToggle.checked = this.playSound;
+      soundsToggle.addEventListener('change', () => {
+        this.toggleNotificationSounds();
+      });
+    }
+    
+    if (allNotificationsToggle) {
+      allNotificationsToggle.checked = this.enabled;
+      allNotificationsToggle.addEventListener('change', () => {
+        this.toggleAllNotifications();
+        this.updateToggleStates();
+      });
+    }
+    
+    if (messageSoundsToggle) {
+      messageSoundsToggle.checked = this.app.soundManager.isSoundEnabled();
+      messageSoundsToggle.addEventListener('change', () => {
+        this.app.soundManager.toggleSounds();
+      });
+    }
+    
+    if (permissionBtn) {
+      permissionBtn.addEventListener('click', () => {
+        this.requestPermission();
+      });
+    }
+    
+    this.updatePermissionStatus();
+    this.updateToggleStates();
+  }
+  
+  updatePermissionStatus() {
+    const statusText = document.getElementById('permission-status-text');
+    const requestBtn = document.getElementById('request-permission-btn');
+    
+    if (statusText) {
+      statusText.className = '';
+      
+      switch (this.permission) {
+        case 'granted':
+          statusText.textContent = 'Granted';
+          statusText.classList.add('granted');
+          if (requestBtn) requestBtn.style.display = 'none';
+          break;
+        case 'denied':
+          statusText.textContent = 'Denied';
+          statusText.classList.add('denied');
+          if (requestBtn) requestBtn.style.display = 'none';
+          break;
+        default:
+          statusText.textContent = 'Not requested';
+          statusText.classList.add('default');
+          if (requestBtn) requestBtn.style.display = 'inline-block';
+          break;
+      }
+    }
+  }
+  
+  updateToggleStates() {
+    const desktopToggle = document.getElementById('desktop-notifications-toggle');
+    const soundsToggle = document.getElementById('notification-sounds-toggle');
+    
+    // Disable individual toggles if all notifications are disabled
+    if (desktopToggle) {
+      desktopToggle.disabled = !this.enabled;
+    }
+    if (soundsToggle) {
+      soundsToggle.disabled = !this.enabled;
+    }
   }
   
   showBanner() {
@@ -67,9 +162,11 @@ export class NotificationManager {
       if (permission === 'granted') {
         this.dismissBanner();
         this.showTestNotification();
+        this.updatePermissionStatus();
         return true;
       } else {
         alert('Notifications were denied. You can enable them later in your browser settings.');
+        this.updatePermissionStatus();
         return false;
       }
     } catch(e) {
@@ -180,17 +277,26 @@ export class NotificationManager {
   }
   
   showSettings() {
-    const settings = `
-      Notification Settings:
+    if (this.settingsModal) {
+      this.settingsModal.style.display = 'flex';
+      this.updatePermissionStatus();
+      this.updateToggleStates();
       
-      Desktop Notifications: ${this.showDesktop ? 'Enabled' : 'Disabled'}
-      Notification Sounds: ${this.playSound ? 'Enabled' : 'Disabled'}
-      Browser Permission: ${this.permission}
+      // Update message sounds toggle to reflect current state
+      const messageSoundsToggle = document.getElementById('message-sounds-toggle');
+      if (messageSoundsToggle) {
+        messageSoundsToggle.checked = this.app.soundManager.isSoundEnabled();
+      }
       
-      ${this.permission !== 'granted' ? 'Click the notification icon to enable browser notifications.' : ''}
-    `;
-    
-    alert(settings);
+      // Re-initialize icons in the modal
+      this.app.initializeIcons();
+    }
+  }
+  
+  closeSettings() {
+    if (this.settingsModal) {
+      this.settingsModal.style.display = 'none';
+    }
   }
   
   // Notification for new messages
@@ -227,6 +333,12 @@ export class NotificationManager {
   toggleDesktopNotifications() {
     this.showDesktop = !this.showDesktop;
     this.saveSetting('desktop_notifications', this.showDesktop);
+    
+    // If enabling desktop notifications, check for permission
+    if (this.showDesktop && this.permission !== 'granted') {
+      this.requestPermission();
+    }
+    
     return this.showDesktop;
   }
   

@@ -470,16 +470,21 @@ body {
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.5);
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-content {
   position: relative;
   background: #f0f0f0;
-  margin: 10% auto;
   width: 90%;
   max-width: 600px;
+  max-height: 80vh;
   border: 2px outset #ccc;
   box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -490,6 +495,7 @@ body {
   justify-content: space-between;
   align-items: center;
   font-weight: bold;
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -504,16 +510,22 @@ body {
   cursor: pointer;
   font-size: 20px;
   padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
   background: rgba(255,255,255,0.2);
   border-radius: 2px;
-  padding: 2px 4px;
 }
 
 .modal-body {
-  padding: 16px;
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 /* Search Modal */
@@ -865,4 +877,187 @@ body {
 
 .notification-body {
   color: #666;
+}
+
+/* Settings Modal Styles */
+.settings-section {
+  margin-bottom: 32px;
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.settings-section h4 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 10px;
+  font-weight: 600;
+}
+
+.setting-item {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.setting-item:hover {
+  background: #f5f5f5;
+}
+
+.setting-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 8px;
+  font-size: 15px;
+  color: #333;
+}
+
+.setting-description {
+  margin: 8px 0 0 0;
+  font-size: 13px;
+  color: #777;
+  line-height: 1.5;
+}
+
+.permission-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.permission-status span:first-child {
+  font-weight: 500;
+  color: #555;
+}
+
+#permission-status-text {
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.small-btn {
+  background: #2196F3;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.small-btn:hover {
+  background: #1976D2;
+}
+
+/* Toggle Switch Styles */
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #4CAF50;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-switch input:disabled + .toggle-slider {
+  background-color: #ddd;
+  cursor: not-allowed;
+}
+
+.toggle-switch input:disabled + .toggle-slider:before {
+  background-color: #f5f5f5;
+}
+
+/* Permission Status */
+.permission-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+#permission-status-text {
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+#permission-status-text.granted {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+#permission-status-text.denied {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+#permission-status-text.default {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.small-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.small-btn:hover {
+  background: #0056b3;
 }

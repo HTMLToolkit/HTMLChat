@@ -1,13 +1,13 @@
 # HTMLChat 💬
 
 A retro-styled, browser-only chat client.  
-Version: **v0.1.0-beta**
+Version: **v0.2.0**
 
 ## What this is  
 
 HTMLChat is a super simple chat system I hacked together:  
 
-* Frontend is pure HTML/CSS/JS (retro style, scrollbars included).  
+* Frontend is plain HTML/CSS/JS built with Vite (retro style, scrollbars included).  
 * Backend is a tiny API (yes, it’s alive, and yes, it works).  
 * LocalStorage keeps your name + cached messages.  
 * No cookies. No nonsense. Just **chat**.  
@@ -17,7 +17,13 @@ HTMLChat is a super simple chat system I hacked together:
 - Multiple rooms (#general, #random, #offtopic, #computers)
 - Nicknames + color-coding
 - Connection status + heartbeat (so you look online)
-- Export chat logs as JSON
+- Export chat logs as JSON (plus a handy Reload button next to Export)
+- File uploads (images/docs) with previews
+- Replies (click to reply, threaded context)
+- Search (fast, non-blocking)
+- Moderator tools (delete/ban)
+- Settings modal (desktop notifications + sounds toggles)
+- Lucide icons via npm (no CDN, crisp SVGs)
 - Mobile-friendly (user list hides on small screens)
 - Retro scrollbars (obviously)  
   
@@ -33,7 +39,9 @@ This is **beta**, so expect bugs and jank. Stuff I *might* add:
   
 ## Running it  
   
-- Frontend is just static HTML.
+- Frontend lives in `Build/` and uses Vite.  
+	- Dev: `cd Build && npm install && npm run dev`  
+	- Build: `cd Build && npm install && npm run build`  
 - Backend is currently deployed at:  
 ```
 https://htmlchat.neeljaiswal23.workers.dev

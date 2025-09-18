@@ -1,3 +1,5 @@
+import { Image, Music, FileText, Paperclip } from 'lucide';
+
 export class FileUploadManager {
   constructor(app) {
     this.app = app;
@@ -10,7 +12,61 @@ export class FileUploadManager {
     
     this.setupEventListeners();
   }
-  
+
+  // Helper method to create lucide icons
+  createIcon(iconName, options = {}) {
+    const iconMap = {
+      'image': Image,
+      'music': Music,
+      'file-text': FileText,
+      'paperclip': Paperclip
+    };
+    
+    const IconComponent = iconMap[iconName];
+    if (!IconComponent) {
+      console.warn(`Icon "${iconName}" not found`);
+      return '';
+    }
+    
+    const size = options.size || 16;
+    const strokeWidth = options.strokeWidth || 2;
+    
+    // Create SVG element
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', size);
+    svg.setAttribute('height', size);
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', strokeWidth);
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    
+    // Add paths from the icon component
+    IconComponent.forEach(pathData => {
+      if (pathData && pathData[0] === 'path') {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData[1].d || '');
+        svg.appendChild(path);
+      } else if (pathData && pathData[0] === 'circle') {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', pathData[1].cx || '');
+        circle.setAttribute('cy', pathData[1].cy || '');
+        circle.setAttribute('r', pathData[1].r || '');
+        svg.appendChild(circle);
+      } else if (pathData && pathData[0] === 'line') {
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', pathData[1].x1 || '');
+        line.setAttribute('y1', pathData[1].y1 || '');
+        line.setAttribute('x2', pathData[1].x2 || '');
+        line.setAttribute('y2', pathData[1].y2 || '');
+        svg.appendChild(line);
+      }
+    });
+    
+    return svg.outerHTML;
+  }
+
   setupEventListeners() {
     // File input change
     this.fileInput.addEventListener('change', (e) => {
@@ -128,11 +184,6 @@ export class FileUploadManager {
     `;
     
     this.preview.innerHTML = html + uploadBtn;
-    
-    // Re-initialize Lucide icons for the new content
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
   }
   
   removeFile(index) {
@@ -141,12 +192,12 @@ export class FileUploadManager {
   }
   
   getFileIcon(mimeType) {
-    if (mimeType.startsWith('image/')) return '<i data-lucide="image"></i>';
-    if (mimeType.startsWith('audio/')) return '<i data-lucide="music"></i>';
-    if (mimeType === 'application/pdf') return '<i data-lucide="file-text"></i>';
-    if (mimeType.includes('word')) return '<i data-lucide="file-text"></i>';
-    if (mimeType === 'text/plain') return '<i data-lucide="file-text"></i>';
-    return '<i data-lucide="paperclip"></i>';
+    if (mimeType.startsWith('image/')) return this.createIcon('image');
+    if (mimeType.startsWith('audio/')) return this.createIcon('music');
+    if (mimeType === 'application/pdf') return this.createIcon('file-text');
+    if (mimeType.includes('word')) return this.createIcon('file-text');
+    if (mimeType === 'text/plain') return this.createIcon('file-text');
+    return this.createIcon('paperclip');
   }
   
   formatFileSize(bytes) {

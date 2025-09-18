@@ -35,23 +35,23 @@
     <!-- Context Menu -->
     <div id="context-menu" class="context-menu">
       <div class="context-item" data-action="reply">
-        <i data-lucide="reply" class="context-icon"></i>
+        <i class="context-icon" data-lucide="reply"></i>
         Reply to Message
       </div>
       <div class="context-item" data-action="delete">
-        <i data-lucide="trash-2" class="context-icon"></i>
+        <i class="context-icon" data-lucide="trash-2"></i>
         Delete Message
       </div>
       <div class="context-item" data-action="pm">
-        <i data-lucide="mail" class="context-icon"></i>
+        <i class="context-icon" data-lucide="mail"></i>
         Private Message
       </div>
       <div class="context-item" data-action="kick">
-        <i data-lucide="user-x" class="context-icon"></i>
+        <i class="context-icon" data-lucide="user-x"></i>
         Kick User
       </div>
       <div class="context-item" data-action="ban">
-        <i data-lucide="ban" class="context-icon"></i>
+        <i class="context-icon" data-lucide="ban"></i>
         Ban User
       </div>
     </div>
@@ -62,7 +62,7 @@
         <div class="modal-header">
           <h3>Search Messages</h3>
           <button class="close-btn" onclick="closeSearchModal()">
-            <i data-lucide="x" style="width: 16px; height: 16px"></i>
+            <i style="width: 16px; height: 16px" data-lucide="x"></i>
           </button>
         </div>
         <div class="modal-body">
@@ -83,20 +83,91 @@
       </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Settings</h3>
+          <button class="close-btn" onclick="closeSettingsModal()">
+            <i style="width: 16px; height: 16px" data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="settings-section">
+            <h4>Notifications</h4>
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Desktop Notifications</span>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="desktop-notifications-toggle">
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+              <p class="setting-description">Show desktop notifications when you receive messages</p>
+            </div>
+            
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Notification Sounds</span>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="notification-sounds-toggle">
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+              <p class="setting-description">Play sounds with notifications</p>
+            </div>
+            
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>All Notifications</span>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="all-notifications-toggle">
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+              <p class="setting-description">Enable or disable all notifications</p>
+            </div>
+            
+            <div class="setting-item" id="browser-permission-status">
+              <div class="permission-status">
+                <span>Browser Permission: </span>
+                <span id="permission-status-text">Unknown</span>
+                <button id="request-permission-btn" class="small-btn" style="display: none;">Enable</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="settings-section">
+            <h4>Sounds</h4>
+            <div class="setting-item">
+              <label class="setting-label">
+                <span>Message Sounds</span>
+                <div class="toggle-switch">
+                  <input type="checkbox" id="message-sounds-toggle">
+                  <span class="toggle-slider"></span>
+                </div>
+              </label>
+              <p class="setting-description">Play sounds when messages are received or sent</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- File Upload Modal -->
     <div id="upload-modal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
           <h3>Upload File</h3>
           <button class="close-btn" onclick="closeUploadModal()">
-            <i data-lucide="x" style="width: 16px; height: 16px"></i>
+            <i style="width: 16px; height: 16px" data-lucide="x"></i>
           </button>
         </div>
         <div class="modal-body">
           <div class="upload-area" id="upload-area">
             <div class="upload-text">
               <div class="upload-icon">
-                <i data-lucide="folder" style="width: 48px; height: 48px"></i>
+                <i style="width: 48px; height: 48px" data-lucide="folder"></i>
               </div>
               <p>Drag & drop files here or click to browse</p>
               <p class="upload-limit">Max 5MB • Images, documents, audio</p>
@@ -124,7 +195,7 @@
       <span>Enable notifications to get alerts when you receive messages</span>
       <button onclick="requestNotificationPermission()">Enable</button>
       <button onclick="dismissNotificationBanner()">
-        <i data-lucide="x" style="width: 12px; height: 12px"></i>
+        <i style="width: 12px; height: 12px" data-lucide="x"></i>
       </button>
     </div>
 
@@ -135,14 +206,13 @@
         <div class="header-controls">
           <button
             class="header-btn"
-            onclick="toggleSounds()"
             id="sound-toggle"
             title="Toggle Sounds"
           >
-            <i data-lucide="volume-2" class="sound-on-icon"></i>
+            <i class="sound-on-icon" data-lucide="volume-2"></i>
             <i
-              data-lucide="volume-x"
               class="sound-off-icon"
+              data-lucide="volume-x"
               style="display: none"
             ></i>
           </button>
@@ -152,6 +222,13 @@
             title="Search Messages"
           >
             <i data-lucide="search"></i>
+          </button>
+          <button
+            class="header-btn"
+            onclick="openSettingsModal()"
+            title="Settings"
+          >
+            <i data-lucide="settings"></i>
           </button>
           <button class="minimize-btn" onclick="window.close()">×</button>
         </div>
@@ -186,7 +263,7 @@
           <span class="reply-text"></span>
         </div>
         <button class="reply-cancel" onclick="cancelReply()">
-          <i data-lucide="x" style="width: 12px; height: 12px"></i>
+          <i style="width: 12px; height: 12px" data-lucide="x"></i>
         </button>
       </div>
 
@@ -218,18 +295,11 @@
           <span id="status-text">Connected</span>
         </div>
         <div>
+          <button onclick="reloadChats()" id="reload-btn" class="status-btn" title="Reload chats">Reload</button>
           <button onclick="exportChat()" class="status-btn">Export</button>
-          <button onclick="showNotificationSettings()" class="status-btn">
-            <i data-lucide="bell"></i>
-          </button>
         </div>
       </div>
     </div>
-
-    <!-- External dependencies -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.5/purify.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
     <!-- Audio files (using data URLs for retro sounds) -->
     <audio id="sound-message" preload="auto">
@@ -259,13 +329,5 @@
       eruda.init();
     </script>
     <script type="module" src="src/main.js"></script>
-    <script>
-      // Initialize Lucide icons when page loads
-      document.addEventListener("DOMContentLoaded", () => {
-        if (typeof lucide !== "undefined") {
-          lucide.createIcons();
-        }
-      });
-    </script>
   </body>
 </html>
