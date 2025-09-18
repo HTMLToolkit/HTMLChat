@@ -7,12 +7,17 @@ export class PrivateMessageManager {
     this.windowContainer = document.getElementById('pm-windows');
     this.windowZIndex = 1600;
   }
-  
-  // Security utility to escape HTML
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+
+  escapeHTML(s) {
+    return String(s).replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+  }
+
+  escapeAttr(s) {
+    return this.escapeHTML(String(s))
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&#39;');
   }
   
   openPrivateMessage(username) {
@@ -37,11 +42,13 @@ export class PrivateMessageManager {
   }
   
   createPMWindow(username) {
-    const windowId = `pm-${username}`;
+    const safeName = this.escapeAttr(username);
+    const windowId = `pm-${safeName}`;
     const windowElement = document.createElement('div');
     windowElement.className = 'pm-window';
     windowElement.id = windowId;
     windowElement.style.zIndex = this.windowZIndex++;
+    windowElement.dataset.username = safeName;
     
     // Position window (cascade effect)
     const offset = this.windows.size * 30;
@@ -261,8 +268,8 @@ export class PrivateMessageManager {
       
       return `
         <div class="msg">
-          <span class="time">[${this.escapeHtml(date)}]</span>
-          <span class="user" style="color:${this.escapeHtml(color)}">&lt;${this.escapeHtml(msg.from)}&gt;</span>
+          <span class="time">[${this.escapeHTML(date)}]</span>
+          <span class="user" style="color:${this.escapeHTML(color)}">&lt;${this.escapeHTML(msg.from)}&gt;</span>
           <span class="text">${processedText}</span>
         </div>
       `;
