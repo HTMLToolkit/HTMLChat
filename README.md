@@ -1,7 +1,7 @@
 # HTMLChat 💬
 
 A retro-styled, browser-only chat client.  
-Version: **v0.2.0**
+Version: **v0.2.0-beta**
 
 ## What this is  
 
