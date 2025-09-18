@@ -172,9 +172,7 @@ export class ContextMenuManager {
           `${this.app.baseURL}/chat/${room}?user=${encodeURIComponent(this.app.user)}&messageId=${encodeURIComponent(messageId)}`,
           { 
             method: "DELETE",
-            headers: {
-              'Content-Type': 'application/json'
-            }
+            headers: this.app.getAuthHeaders(true) // Include Content-Type for DELETE
           }
         );
         

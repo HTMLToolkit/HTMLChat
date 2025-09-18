@@ -14,7 +14,7 @@ export default {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
+          'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, X-Auth-User'
         }
       });
     }
@@ -52,9 +52,25 @@ export default {
         return new Response('File not found', { status: 404 });
       }
 
+      // Sanitize filename for Content-Disposition header
+      const sanitizeFilename = (name) => {
+        // Remove path characters and unsafe characters
+        const sanitized = name.replace(/[\/\\:*?"<>|]/g, '_').replace(/\s+/g, '_');
+        return sanitized || 'download';
+      };
+
+      // Use original filename from metadata or fallback to sanitized version
+      const originalName = object.httpMetadata?.contentDisposition?.match(/filename="([^"]+)"/)
+        ? object.httpMetadata.contentDisposition.match(/filename="([^"]+)"/)[1]
+        : filename;
+      
+      const safeFilename = sanitizeFilename(originalName);
+
       return new Response(object.body, {
         headers: {
           'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
+          'Content-Disposition': `inline; filename="${safeFilename}"`,
+          'X-Content-Type-Options': 'nosniff',
           'Access-Control-Allow-Origin': '*',
           'Cache-Control': 'public, max-age=31536000' // 1 year cache
         }
@@ -154,10 +170,17 @@ async function handleFileUpload(request, env) {
       });
     }
 
-    // Generate unique filename
+    // Generate unique filename with sanitized user
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filename = `${timestamp}_${user}_${sanitizedName}`;
+    
+    // Sanitize username to prevent path traversal and injection
+    let sanitizedUser = user.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/_+/g, '_');
+    if (!sanitizedUser || sanitizedUser === '_') {
+      sanitizedUser = 'unknown';
+    }
+    
+    const filename = `${timestamp}_${sanitizedUser}_${sanitizedName}`;
     
     // Store file in R2 bucket (if available) or convert to base64
     let fileUrl;
@@ -183,7 +206,23 @@ async function handleFileUpload(request, env) {
     }
     
     if (!storedSuccessfully) {
-      // Fallback: convert to base64 data URL
+      // Check file size before base64 conversion to prevent memory/payload bloat
+      const maxBase64Size = 1024 * 1024; // 1MB threshold
+      if (file.size > maxBase64Size) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: `File too large for fallback storage (${Math.round(file.size / 1024 / 1024)}MB). Please contact admin to enable R2 bucket or use smaller files.`,
+          maxSizeSupported: `${maxBase64Size / 1024 / 1024}MB`
+        }), {
+          status: 413,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+      
+      // Fallback: convert to base64 data URL (small files only)
       const arrayBuffer = await file.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       fileUrl = `data:${file.type};base64,${base64}`;

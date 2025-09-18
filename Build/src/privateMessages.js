@@ -8,6 +8,13 @@ export class PrivateMessageManager {
     this.windowZIndex = 1600;
   }
   
+  // Security utility to escape HTML
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
   openPrivateMessage(username) {
     if (username === this.app.user) return; // Can't PM yourself
     
@@ -70,28 +77,56 @@ export class PrivateMessageManager {
     
     const closeIconHtml = svg.outerHTML;
     
-    windowElement.innerHTML = `
-      <div class="pm-header">
-        <span>Private Message - ${username}</span>
-        <button class="pm-close-btn" onclick="app.pmManager.closePMWindow('${username}')">
-          ${closeIconHtml}
-        </button>
-      </div>
-      <div class="pm-chat" id="${windowId}-chat"></div>
-      <div class="pm-input-area">
-        <div class="pm-input-container">
-          <input class="pm-input" id="${windowId}-input" placeholder="Type private message..." maxlength="1000">
-          <button class="pm-send-btn" onclick="app.pmManager.sendPM('${username}')">Send</button>
-        </div>
-      </div>
-    `;
+    // Create header
+    const header = document.createElement('div');
+    header.className = 'pm-header';
     
-    const chatArea = windowElement.querySelector('.pm-chat');
-    const input = windowElement.querySelector('.pm-input');
-    const sendBtn = windowElement.querySelector('.pm-send-btn');
+    const headerSpan = document.createElement('span');
+    headerSpan.textContent = `Private Message - ${username}`;
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'pm-close-btn';
+    closeBtn.innerHTML = closeIconHtml;
+    closeBtn.addEventListener('click', () => this.closePMWindow(username));
+    
+    header.appendChild(headerSpan);
+    header.appendChild(closeBtn);
+    
+    // Create chat area
+    const chatArea = document.createElement('div');
+    chatArea.className = 'pm-chat';
+    chatArea.id = `${windowId}-chat`;
+    
+    // Create input area
+    const inputArea = document.createElement('div');
+    inputArea.className = 'pm-input-area';
+    
+    const inputContainer = document.createElement('div');
+    inputContainer.className = 'pm-input-container';
+    
+    const input = document.createElement('input');
+    input.className = 'pm-input';
+    input.id = `${windowId}-input`;
+    input.placeholder = 'Type private message...';
+    input.maxLength = 1000;
+    
+    const sendBtn = document.createElement('button');
+    sendBtn.className = 'pm-send-btn';
+    sendBtn.textContent = 'Send';
+    sendBtn.addEventListener('click', () => this.sendPM(username));
+    
+    inputContainer.appendChild(input);
+    inputContainer.appendChild(sendBtn);
+    inputArea.appendChild(inputContainer);
+    
+    // Clear and assemble window
+    windowElement.innerHTML = '';
+    windowElement.appendChild(header);
+    windowElement.appendChild(chatArea);
+    windowElement.appendChild(inputArea);
     
     // Make window draggable
-    this.makeDraggable(windowElement, windowElement.querySelector('.pm-header'));
+    this.makeDraggable(windowElement, header);
     
     // Enter key to send
     input.addEventListener('keydown', (e) => {
@@ -180,8 +215,8 @@ export class PrivateMessageManager {
       // Generate conversation ID (sorted usernames for consistency)
       const conversationId = [this.app.user, username].sort().join('_');
       
-      // Send PM to server
-      const res = await fetch(`${this.app.baseURL}/pm/${conversationId}?user=${encodeURIComponent(this.app.user)}`, {
+      // Send PM to server - encode conversationId to handle special characters
+      const res = await fetch(`${this.app.baseURL}/pm/${encodeURIComponent(conversationId)}?user=${encodeURIComponent(this.app.user)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: message, to: username })
@@ -226,8 +261,8 @@ export class PrivateMessageManager {
       
       return `
         <div class="msg">
-          <span class="time">[${date}]</span>
-          <span class="user" style="color:${color}">&lt;${msg.from}&gt;</span>
+          <span class="time">[${this.escapeHtml(date)}]</span>
+          <span class="user" style="color:${this.escapeHtml(color)}">&lt;${this.escapeHtml(msg.from)}&gt;</span>
           <span class="text">${processedText}</span>
         </div>
       `;
@@ -242,8 +277,8 @@ export class PrivateMessageManager {
       // Generate conversation ID (sorted usernames for consistency)
       const conversationId = [this.app.user, username].sort().join('_');
       
-      // Fetch from server
-      const res = await fetch(`${this.app.baseURL}/pm/${conversationId}?user=${encodeURIComponent(this.app.user)}`);
+      // Fetch from server - encode conversationId to handle special characters
+      const res = await fetch(`${this.app.baseURL}/pm/${encodeURIComponent(conversationId)}?user=${encodeURIComponent(this.app.user)}`);
       
       if (res.ok) {
         const data = await res.json();

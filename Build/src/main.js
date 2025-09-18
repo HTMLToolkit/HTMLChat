@@ -54,6 +54,9 @@ class HTMLChatApp {
     this.notificationManager = new NotificationManager(this);
     this.contextMenu = new ContextMenuManager(this);
     this.modTools = new ModeratorTools(this);
+    
+    // Server-side moderator status (authoritative)
+    this.serverIsModerator = false;
 
     // DOM elements
     this.elements = {
@@ -125,6 +128,13 @@ class HTMLChatApp {
     return svg;
   }
 
+  // Security utility to escape HTML
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
   // Initialize all icons in the DOM
   initializeIcons() {
     // Find all elements with data-lucide attributes and replace them
@@ -170,12 +180,30 @@ class HTMLChatApp {
   async init() {
     // Get or prompt for username
     this.user = this.loadFromStorage("htmlchat_user");
+    this.authToken = this.loadFromStorage("htmlchat_auth_token");
+    
     if (!this.user) {
       do {
         this.user = prompt("Enter your nickname:") || "";
         this.user = this.user.trim().substring(0, 20);
       } while (!this.user);
       this.saveToStorage("htmlchat_user", this.user);
+      
+      // If user is NellowTCS, prompt for moderator password
+      if (this.user.toLowerCase() === 'nellowtcs') {
+        const authPassword = prompt("Enter moderator password:");
+        if (authPassword) {
+          this.authToken = authPassword;
+          this.saveToStorage("htmlchat_auth_token", this.authToken);
+        }
+      }
+    } else if (this.user.toLowerCase() === 'nellowtcs' && !this.authToken) {
+      // Existing NellowTCS user without saved auth token
+      const authPassword = prompt("Enter moderator password:");
+      if (authPassword) {
+        this.authToken = authPassword;
+        this.saveToStorage("htmlchat_auth_token", this.authToken);
+      }
     }
 
     // Set up room
@@ -307,8 +335,78 @@ class HTMLChatApp {
     });
   }
 
+  attachMessageEventListeners() {
+    // Add context menu event listeners for messages
+    const messages = this.elements.chatBox.querySelectorAll('.msg');
+    messages.forEach(msgEl => {
+      msgEl.addEventListener('contextmenu', (e) => {
+        this.contextMenu.show(e, msgEl);
+      });
+    });
+    
+    // Add click event listeners for reply references
+    const replyRefs = this.elements.chatBox.querySelectorAll('.reply-reference');
+    replyRefs.forEach(replyEl => {
+      replyEl.addEventListener('click', () => {
+        const messageId = replyEl.getAttribute('data-message-id');
+        if (messageId) {
+          this.messageRenderer.jumpToMessage(messageId);
+        }
+      });
+    });
+    
+    // Add double-click event listeners for user spans to open private messages
+    const userSpans = this.elements.chatBox.querySelectorAll('.user');
+    userSpans.forEach(userSpan => {
+      userSpan.addEventListener('dblclick', () => {
+        const user = userSpan.getAttribute('data-user');
+        if (user && user !== this.user) {
+          this.pmManager.openPrivateMessage(user);
+        }
+      });
+    });
+    
+    // Add click event listeners for clickable images
+    const images = this.elements.chatBox.querySelectorAll('.clickable-image');
+    images.forEach(img => {
+      img.addEventListener('click', () => {
+        const url = img.getAttribute('data-url');
+        if (url && this.isValidUrl(url)) {
+          window.open(url, '_blank', 'noopener,noreferrer');
+        }
+      });
+    });
+  }
+
+  // URL validation helper
+  isValidUrl(string) {
+    try {
+      const url = new URL(string);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch (_) {
+      return false;
+    }
+  }
+
   updateWelcome() {
-    this.elements.welcomeDiv.innerHTML = `Welcome to HTMLChat Enhanced, <b>${this.user}</b>! You are now in room <b>${this.elements.roomSelect.value}</b>.`;
+    // Clear existing content
+    this.elements.welcomeDiv.innerHTML = '';
+    
+    // Create text node with safe content
+    const welcomeText = document.createTextNode('Welcome to HTMLChat!, ');
+    const userBold = document.createElement('b');
+    userBold.textContent = this.user;
+    const middleText = document.createTextNode('! You are now in room ');
+    const roomBold = document.createElement('b');
+    roomBold.textContent = this.elements.roomSelect.value;
+    const endText = document.createTextNode('.');
+    
+    // Append all elements
+    this.elements.welcomeDiv.appendChild(welcomeText);
+    this.elements.welcomeDiv.appendChild(userBold);
+    this.elements.welcomeDiv.appendChild(middleText);
+    this.elements.welcomeDiv.appendChild(roomBold);
+    this.elements.welcomeDiv.appendChild(endText);
   }
 
   updateStatus(connected) {
@@ -328,30 +426,77 @@ class HTMLChatApp {
     if (users && Array.isArray(users)) {
       document.getElementById("user-count").textContent =
         userCount || users.length;
-      this.elements.usersDiv.innerHTML = users
-        .map(
-          (u) =>
-            `<div class="user-item${
-              this.modTools.isModerator(u) ? " moderator" : ""
-            }" 
-             style="color:${this.messageRenderer.getUserColor(u)}" 
-             data-user="${u}"
-             ondblclick="app.pmManager.openPrivateMessage('${u}')">${u}</div>`
-        )
-        .join("");
+      
+      // Create a document fragment for efficient DOM manipulation
+      const fragment = document.createDocumentFragment();
+      
+      // Create user items programmatically
+      users.forEach((u) => {
+        const userDiv = document.createElement('div');
+        userDiv.classList.add('user-item');
+        if (this.modTools.isModerator(u)) {
+          userDiv.classList.add('moderator');
+        }
+        userDiv.style.color = this.messageRenderer.getUserColor(u);
+        userDiv.dataset.user = u;
+        userDiv.textContent = u;
+        
+        // Add event listener instead of inline handler
+        userDiv.addEventListener('dblclick', () => {
+          this.pmManager.openPrivateMessage(u);
+        });
+        
+        fragment.appendChild(userDiv);
+      });
+      
+      // Replace usersDiv contents efficiently
+      this.elements.usersDiv.innerHTML = '';
+      this.elements.usersDiv.appendChild(fragment);
     } else {
       // Fallback to fake users
       const fakeUsers = [this.user, "ChatBot", "Guest123"];
       document.getElementById("user-count").textContent = fakeUsers.length;
-      this.elements.usersDiv.innerHTML = fakeUsers
-        .map(
-          (u) =>
-            `<div class="user-item" style="color:${this.messageRenderer.getUserColor(
-              u
-            )}">${u}</div>`
-        )
-        .join("");
+      
+      // Create a document fragment for efficient DOM manipulation
+      const fragment = document.createDocumentFragment();
+      
+      // Create fake user items programmatically
+      fakeUsers.forEach((u) => {
+        const userDiv = document.createElement('div');
+        userDiv.classList.add('user-item');
+        userDiv.style.color = this.messageRenderer.getUserColor(u);
+        userDiv.textContent = u;
+        
+        fragment.appendChild(userDiv);
+      });
+      
+      // Replace usersDiv contents efficiently
+      this.elements.usersDiv.innerHTML = '';
+      this.elements.usersDiv.appendChild(fragment);
     }
+  }
+
+  // Helper to get auth headers for moderator actions
+  getAuthHeaders(includeContentType = false) {
+    const headers = {};
+    
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    if (this.user && this.user.toLowerCase() === 'nellowtcs' && this.authToken) {
+      headers['X-Auth-Token'] = this.authToken;
+      headers['X-Auth-User'] = this.user;
+      console.log('Adding auth headers:', { user: this.user, hasToken: !!this.authToken, includeContentType });
+    } else {
+      console.log('No auth headers added:', { 
+        user: this.user, 
+        isNellowTCS: this.user && this.user.toLowerCase() === 'nellowtcs', 
+        hasToken: !!this.authToken 
+      });
+    }
+    
+    return headers;
   }
 
   scrollToBottom() {
@@ -368,13 +513,26 @@ class HTMLChatApp {
           this.elements.chatBox.innerHTML =
             this.messageRenderer.renderMessages(cached);
           this.scrollToBottom();
+          // Attach event listeners for cached content
+          this.attachMessageEventListeners();
         }
       }
 
-      const res = await fetch(
-        `${this.baseURL}/chat/${this.elements.roomSelect.value}`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const url = `${this.baseURL}/chat/${this.elements.roomSelect.value}`;
+      const headers = this.getAuthHeaders(false); // No Content-Type for GET requests
+      
+      console.log('Fetching messages:', { url, headers });
+
+      const res = await fetch(url, { headers });
+      
+      console.log('Fetch response:', { 
+        ok: res.ok, 
+        status: res.status, 
+        statusText: res.statusText,
+        headers: Object.fromEntries(res.headers.entries())
+      });
+      
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
       console.log("Received data:", data);
@@ -382,6 +540,12 @@ class HTMLChatApp {
       const messages = data.messages || [];
       const users = data.users || [];
       const userCount = data.userCount || users.length;
+      
+      // Store server's moderator status for current user
+      if (typeof data.isModerator === 'boolean') {
+        this.serverIsModerator = data.isModerator;
+        console.log('Server moderator status:', this.serverIsModerator);
+      }
 
       // Check for new messages for notifications and update stored message IDs
       const lastMessageCount =
@@ -413,6 +577,9 @@ class HTMLChatApp {
 
       // Re-initialize Lucide icons for new messages
       this.initializeIcons();
+      
+      // Attach secure event listeners for interactive elements
+      this.attachMessageEventListeners();
 
       this.updateUserList(users, userCount);
 
@@ -424,16 +591,45 @@ class HTMLChatApp {
       this.updateStatus(true);
     } catch (e) {
       console.error("Fetch failed:", e);
+      console.error("Error details:", {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+        cause: e.cause
+      });
+      
+      // Check if it's a network error vs server error
+      if (e.message.includes('Failed to fetch')) {
+        console.error('Network error - possible CORS or connectivity issue');
+        console.error('Current URL:', `${this.baseURL}/chat/${this.elements.roomSelect.value}`);
+        console.error('Expected Worker URL format: https://your-worker.your-subdomain.workers.dev');
+      }
+      
       this.updateStatus(false);
 
       if (this.elements.chatBox.innerHTML === "") {
-        this.elements.chatBox.innerHTML = `
-          <div class="msg system">
-            <span class="time">[--:--]</span>
-            <span class="user">*** System ***</span>
-            <span class="text">Unable to connect to server. Please check your connection.</span>
-          </div>
-        `;
+        // Create system error message safely
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'msg system';
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'time';
+        timeSpan.textContent = '[--:--]';
+        
+        const userSpan = document.createElement('span');
+        userSpan.className = 'user';
+        userSpan.textContent = '*** System ***';
+        
+        const textSpan = document.createElement('span');
+        textSpan.className = 'text';
+        textSpan.textContent = 'Unable to connect to server. Please check your connection.';
+        
+        errorDiv.appendChild(timeSpan);
+        errorDiv.appendChild(userSpan);
+        errorDiv.appendChild(textSpan);
+        
+        this.elements.chatBox.innerHTML = '';
+        this.elements.chatBox.appendChild(errorDiv);
       }
     }
   }

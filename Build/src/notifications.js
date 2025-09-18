@@ -1,7 +1,10 @@
 export class NotificationManager {
   constructor(app) {
     this.app = app;
-    this.permission = Notification.permission;
+    // Guard access to Notification API
+    this.permission = (typeof Notification !== 'undefined' && Notification.permission) 
+      ? Notification.permission 
+      : 'default';
     this.enabled = this.loadSetting('notifications_enabled', true);
     this.showDesktop = this.loadSetting('desktop_notifications', true);
     this.playSound = this.loadSetting('notification_sounds', true);
@@ -183,7 +186,7 @@ export class NotificationManager {
   }
   
   showNotification(title, body, options = {}) {
-    if (!this.enabled || !this.showDesktop) return;
+    if (!this.enabled) return;
     
     // If tab is visible, show in-page notification instead
     if (this.app.isVisible) {
@@ -191,12 +194,16 @@ export class NotificationManager {
       return;
     }
     
-    if (this.permission === 'granted') {
+    // Only attempt desktop notification if enabled and permission granted
+    if (this.showDesktop && this.permission === 'granted') {
       try {
+        // Generate unique tag to prevent notification collapse
+        const uniqueTag = `htmlchat-message-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
         const defaultOptions = {
           body: body,
           icon: 'icons/icon-512x512.png',
-          tag: 'htmlchat-message',
+          tag: uniqueTag,
           requireInteraction: false,
           silent: !this.playSound
         };
@@ -219,7 +226,7 @@ export class NotificationManager {
         this.showInPageNotification(title, body);
       }
     } else {
-      // Fallback to in-page notification
+      // Fallback to in-page notification when desktop notifications are disabled
       this.showInPageNotification(title, body);
     }
   }

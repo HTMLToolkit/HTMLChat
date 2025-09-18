@@ -8,9 +8,10 @@ export class ModeratorTools {
   loadModerators() {
     try {
       const saved = localStorage.getItem('htmlchat_moderators');
-      return saved ? JSON.parse(saved) : ['admin', 'mod']; // Default moderators
-    } catch(e) {
-      return ['admin', 'mod'];
+      return saved ? JSON.parse(saved) : ['nellowtcs']; // Default moderators
+    } catch (e) {
+      console.warn('Failed to load moderators:', e);
+      return ['nellowtcs'];
     }
   }
   
@@ -40,6 +41,12 @@ export class ModeratorTools {
   }
   
   isModerator(username) {
+    // For the current user, use server's authoritative response
+    if (username === this.app.user && typeof this.app.serverIsModerator === 'boolean') {
+      return this.app.serverIsModerator;
+    }
+    
+    // For other users, fall back to local moderator list
     return this.moderators.includes(username.toLowerCase());
   }
   

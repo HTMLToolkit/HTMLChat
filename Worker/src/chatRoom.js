@@ -3,6 +3,8 @@ function jsonResponse(data) {
   return new Response(JSON.stringify(data), {
     headers: {
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, X-Auth-User',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Content-Type': 'application/json'
     }
   });
@@ -13,6 +15,8 @@ function textResponse(text, status = 200) {
     status,
     headers: {
       'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, X-Auth-User',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Content-Type': 'text/plain'
     }
   });
@@ -160,8 +164,8 @@ export default class ChatRoom {
   }
 
   async isModerator(username) {
-    const moderators = await this.state.storage.get('moderators') || [];
-    return moderators.includes(username.toLowerCase());
+    // Only NellowTCS is allowed moderator access
+    return username && username.toLowerCase() === 'nellowtcs';
   }
 
   async isKicked(username, room) {
@@ -232,7 +236,7 @@ export default class ChatRoom {
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
+          'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token, X-Auth-User'
         }
       });
     }
@@ -258,14 +262,35 @@ export default class ChatRoom {
     if (request.method === 'GET') {
       const messages = await this.state.storage.get(`messages:${room}`) || [];
       const users = await this.getUsers(room);
-      const moderators = await this.state.storage.get('moderators') || [];
+      const moderators = ['NellowTCS']; // Only NellowTCS is moderator >:D
+      
+      // Check if user is authenticated as moderator
+      let isModerator = false;
+      if (this.env.AUTH_SECRET) {
+        const authenticatedUser = this.authenticateUser(request);
+        isModerator = authenticatedUser && authenticatedUser.toLowerCase() === 'nellowtcs';
+        console.log('Moderator check:', { 
+          authConfigured: true, 
+          authenticatedUser, 
+          authenticatedUserLower: authenticatedUser?.toLowerCase(),
+          isModerator 
+        });
+      } else {
+        // Fallback to client-supplied user if no auth configured
+        isModerator = user && user.toLowerCase() === 'nellowtcs';
+        console.log('Moderator check (no auth):', { 
+          authConfigured: false, 
+          user, 
+          isModerator 
+        });
+      }
       
       return jsonResponse({
         messages,
         users,
         userCount: users.length,
         moderators,
-        isModerator: moderators.includes(user.toLowerCase())
+        isModerator
       });
     }
 
@@ -320,7 +345,7 @@ export default class ChatRoom {
       
       if (messageId) {
         // Delete specific message
-        return this.deleteMessage(room, messageId, user);
+        return this.deleteMessage(room, messageId, user, request);
       } else {
         // User leaving room
         const key = `users:${room}`;
@@ -340,53 +365,113 @@ export default class ChatRoom {
     return textResponse('Method not allowed', 405);
   }
 
-  async deleteMessage(room, messageId, user) {
-    const key = `messages:${room}`;
-    const messages = await this.state.storage.get(key) || [];
-    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+  // Authenticate user from request headers/session
+  authenticateUser(request) {
+    // Simple auth via X-Auth-Token header matching server secret
+    const authToken = request.headers.get('X-Auth-Token');
+    const expectedToken = this.env.AUTH_SECRET; // Cloudflare secret
     
-    console.log(`Delete request: room=${room}, messageId=${messageId}, user=${user}`); // Debug
-    console.log(`Found message at index: ${messageIndex}`); // Debug
-    
-    if (messageIndex === -1) {
-      return textResponse('Message not found', 404);
-    }
-
-    const message = messages[messageIndex];
-    console.log(`Message to delete:`, message); // Debug
-    
-    // Check permissions - can delete own message or if moderator
-    const isMod = await this.isModerator(user);
-    if (message.user !== user && !isMod) {
-      console.log(`Permission denied: user=${user}, messageUser=${message.user}, isMod=${isMod}`); // Debug
-      return textResponse('Unauthorized - can only delete own messages or need moderator privileges', 403);
-    }
-
-    // Store original message info for system message
-    const originalUser = message.user;
-    const originalText = message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text;
-
-    // Remove message
-    messages.splice(messageIndex, 1);
-
-    // Add system message about deletion
-    const systemMessage = {
-      id: `sys_del_${Date.now()}`,
-      user: '*** System ***',
-      text: `Message from ${originalUser} deleted by ${user}${originalUser !== user ? ' (moderator action)' : ''}`,
-      time: Date.now(),
-      system: true
-    };
-    
-    messages.push(systemMessage);
-    await this.state.storage.put(key, messages);
-
-    console.log('Message deleted successfully'); // Debug
-    return jsonResponse({ 
-      success: true, 
-      deleted: true,
-      systemMessage: systemMessage 
+    console.log('Auth check:', { 
+      hasToken: !!authToken, 
+      hasSecret: !!expectedToken,
+      tokensMatch: authToken === expectedToken 
     });
+    
+    if (!authToken || !expectedToken) {
+      return null; // No auth configured or provided
+    }
+    
+    if (authToken !== expectedToken) {
+      return null; // Invalid token
+    }
+    
+    // Extract authenticated user from X-Auth-User header
+    const authenticatedUser = request.headers.get('X-Auth-User');
+    console.log('Authenticated user:', authenticatedUser);
+    return authenticatedUser || null;
+  }
+
+  // Verify user has permission for action (either owns resource or is authenticated)
+  async verifyUserPermission(request, targetUser, requireModerator = false) {
+    const authenticatedUser = this.authenticateUser(request);
+    
+    // If authentication is configured, require it
+    if (this.env.AUTH_SECRET) {
+      if (!authenticatedUser) {
+        throw new Error('Authentication required');
+      }
+      
+      // Use authenticated identity instead of trusting client-supplied user
+      const userToCheck = authenticatedUser;
+      
+      if (requireModerator) {
+        const isMod = await this.isModerator(userToCheck);
+        if (!isMod) {
+          throw new Error('Moderator privileges required');
+        }
+      }
+      
+      return userToCheck;
+    } else {
+      // Fallback to old behavior if auth not configured (for development)
+      console.warn('AUTH_SECRET not configured - using client-supplied user (insecure)');
+      return targetUser;
+    }
+  }
+
+  async deleteMessage(room, messageId, user, request) {
+    try {
+      // Verify user permission with authentication
+      const verifiedUser = await this.verifyUserPermission(request, user, false);
+      
+      const key = `messages:${room}`;
+      const messages = await this.state.storage.get(key) || [];
+      const messageIndex = messages.findIndex(msg => msg.id === messageId);
+      
+      console.log(`Delete request: room=${room}, messageId=${messageId}, verifiedUser=${verifiedUser}`);
+      
+      if (messageIndex === -1) {
+        return textResponse('Message not found', 404);
+      }
+
+      const message = messages[messageIndex];
+      
+      // Check permissions - can delete own message or if moderator
+      const isMod = await this.isModerator(verifiedUser);
+      if (message.user !== verifiedUser && !isMod) {
+        console.log(`Permission denied: verifiedUser=${verifiedUser}, messageUser=${message.user}, isMod=${isMod}`);
+        return textResponse('Unauthorized - can only delete own messages or need moderator privileges', 403);
+      }
+
+      // Store original message info for system message
+      const originalUser = message.user;
+      const originalText = message.text.length > 50 ? message.text.substring(0, 50) + '...' : message.text;
+
+      // Remove message
+      messages.splice(messageIndex, 1);
+
+      // Add system message about deletion
+      const systemMessage = {
+        id: `sys_del_${Date.now()}`,
+        user: '*** System ***',
+        text: `Message from ${originalUser} deleted by ${verifiedUser}${originalUser !== verifiedUser ? ' (moderator action)' : ''}`,
+        time: Date.now(),
+        system: true
+      };
+      
+      messages.push(systemMessage);
+      await this.state.storage.put(key, messages);
+
+      console.log('Message deleted successfully');
+      return jsonResponse({ 
+        success: true, 
+        deleted: true,
+        systemMessage: systemMessage 
+      });
+    } catch (error) {
+      console.error('Delete message error:', error);
+      return textResponse(error.message, 403);
+    }
   }
 
   async handlePrivateMessages(request, conversationId, user) {
@@ -427,39 +512,42 @@ export default class ChatRoom {
   }
 
   async handleModeration(request, room, user) {
-    // Check if user is moderator
-    if (!(await this.isModerator(user))) {
-      return textResponse('Unauthorized - Moderator access required', 403);
-    }
-
-    if (request.method === 'POST') {
-      const { action, targetUser, reason, duration } = await request.json();
+    try {
+      // Verify user permission with authentication (requires moderator)
+      const verifiedUser = await this.verifyUserPermission(request, user, true);
       
-      switch (action) {
-        case 'ban':
-          return this.banUser(targetUser, user, reason, duration);
-        case 'unban':
-          return this.unbanUser(targetUser, user);
-        case 'kick':
-          return this.kickUser(room, targetUser, user, reason);
-        case 'addMod':
-          return this.addModerator(targetUser, user);
-        case 'removeMod':
-          return this.removeModerator(targetUser, user);
+      if (request.method === 'POST') {
+        const { action, targetUser, reason, duration } = await request.json();
+        
+        switch (action) {
+          case 'ban':
+            return this.banUser(targetUser, verifiedUser, reason, duration);
+          case 'unban':
+            return this.unbanUser(targetUser, verifiedUser);
+          case 'kick':
+            return this.kickUser(room, targetUser, verifiedUser, reason);
+          case 'addMod':
+            return textResponse('Cannot modify moderators - NellowTCS is the only moderator', 403);
+          case 'removeMod':
+            return textResponse('Cannot modify moderators - NellowTCS is the only moderator', 403);
+        }
       }
-    }
 
-    if (request.method === 'GET') {
-      const bannedUsers = await this.state.storage.get('banned_users') || {};
-      const moderators = await this.state.storage.get('moderators') || [];
-      
-      return jsonResponse({
-        bannedUsers,
-        moderators
-      });
-    }
+      if (request.method === 'GET') {
+        const bannedUsers = await this.state.storage.get('banned_users') || {};
+        const moderators = ['NellowTCS']; // Only NellowTCS is moderator
+        
+        return jsonResponse({
+          bannedUsers,
+          moderators
+        });
+      }
 
-    return textResponse('Method not allowed', 405);
+      return textResponse('Method not allowed', 405);
+    } catch (error) {
+      console.error('Moderation error:', error);
+      return textResponse(error.message, 403);
+    }
   }
 
   async banUser(targetUser, moderator, reason = '', durationMinutes = null) {

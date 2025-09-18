@@ -13,6 +13,16 @@ export class FileUploadManager {
     this.setupEventListeners();
   }
 
+  // Helper method to escape HTML to prevent injection
+  escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Helper method to create lucide icons
   createIcon(iconName, options = {}) {
     const iconMap = {
@@ -157,22 +167,23 @@ export class FileUploadManager {
     const html = this.selectedFiles.map((file, index) => {
       const icon = this.getFileIcon(file.type);
       const size = this.formatFileSize(file.size);
+      const escapedName = this.escapeHtml(file.name);
       
       return `
-        <div class="preview-item">
+        <div class="preview-item" data-file-index="${index}">
           <div class="preview-icon">${icon}</div>
           <div class="preview-info">
-            <div class="preview-name">${file.name}</div>
+            <div class="preview-name">${escapedName}</div>
             <div class="preview-size">${size}</div>
           </div>
-          <button class="preview-remove" onclick="app.fileManager.removeFile(${index})">Remove</button>
+          <button class="preview-remove" data-file-index="${index}">Remove</button>
         </div>
       `;
     }).join('');
     
     const uploadBtn = `
       <div style="margin-top: 16px; text-align: center;">
-        <button onclick="app.fileManager.uploadFiles()" style="
+        <button id="uploadBtn" style="
           background: linear-gradient(90deg, #2196F3, #21CBF3);
           color: white;
           border: 1px outset #2196F3;
@@ -184,6 +195,22 @@ export class FileUploadManager {
     `;
     
     this.preview.innerHTML = html + uploadBtn;
+    
+    // Add event listeners for remove buttons
+    this.preview.querySelectorAll('.preview-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const index = parseInt(btn.getAttribute('data-file-index'));
+        this.removeFile(index);
+      });
+    });
+    
+    // Add event listener for upload button
+    const uploadButton = document.getElementById('uploadBtn');
+    if (uploadButton) {
+      uploadButton.addEventListener('click', () => {
+        this.uploadFiles();
+      });
+    }
   }
   
   removeFile(index) {
@@ -222,7 +249,7 @@ export class FileUploadManager {
     try {
       // Show upload progress
       this.updatePreview();
-      const uploadBtn = this.preview.querySelector('button');
+      const uploadBtn = document.getElementById('uploadBtn');
       if (uploadBtn) {
         uploadBtn.disabled = true;
         uploadBtn.textContent = 'Uploading...';
@@ -292,11 +319,14 @@ export class FileUploadManager {
       // Refresh messages to show uploaded files
       await this.app.fetchMessages(true);
       
+      // Capture the number of processed files before closing modal
+      const processedCount = this.selectedFiles.length;
+      
       // Close modal
       this.closeModal();
       
       // Show success message
-      alert(`Upload completed! ${this.selectedFiles.length} file(s) processed.`);
+      alert(`Upload completed! ${processedCount} file(s) processed.`);
       
     } catch(e) {
       console.error('Upload failed:', e);
@@ -305,7 +335,7 @@ export class FileUploadManager {
       this.uploading = false;
       
       // Reset upload button
-      const uploadBtn = this.preview.querySelector('button');
+      const uploadBtn = document.getElementById('uploadBtn');
       if (uploadBtn) {
         uploadBtn.disabled = false;
         uploadBtn.textContent = 'Upload Files';

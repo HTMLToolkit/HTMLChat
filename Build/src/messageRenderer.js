@@ -11,6 +11,13 @@ export class MessageRenderer {
     ];
   }
   
+  // Security utility to escape HTML
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
   // Helper method to create lucide icons
   createIcon(iconName, options = {}) {
     const iconMap = {
@@ -101,7 +108,7 @@ export class MessageRenderer {
     });
 
     // 3. Convert remaining plain URLs into clickable links
-    html = html.replace(/(?<!["'>])\bhttps?:\/\/[^\s<]+/g, '<a href="$&" target="_blank" style="color:#0066cc">$&</a>');
+    html = html.replace(/(?<!["'>])\bhttps?:\/\/[^\s<]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" style="color:#0066cc">$&</a>');
 
     return html;
   }
@@ -159,39 +166,44 @@ export class MessageRenderer {
       if (message.system) messageClass += ' system';
       
       let messageHtml = `
-        <div class="${messageClass}" id="${messageId}" 
-             data-user="${user}" 
-             data-time="${time}"
-             data-message-id="${messageId}"
-             oncontextmenu="app.contextMenu.show(event, this)">
+        <div class="${messageClass}" id="${this.escapeHtml(messageId)}" 
+             data-user="${this.escapeHtml(user)}" 
+             data-time="${this.escapeHtml(time)}"
+             data-message-id="${this.escapeHtml(messageId)}">
       `;
       
       // Add reply reference if this is a reply (before timestamp and user)
       if (replyInfo) {
         messageHtml += `
-          <div class="reply-reference" onclick="app.messageRenderer.jumpToMessage('${replyInfo.messageId}')">
-            ↳ Replying to ${replyInfo.replyUser}
+          <div class="reply-reference" data-message-id="${this.escapeHtml(replyInfo.messageId)}">
+            ↳ Replying to ${this.escapeHtml(replyInfo.replyUser)}
           </div>
         `;
       }
       
       messageHtml += `
-          <span class="time">[${date}]</span>
+          <span class="time">[${this.escapeHtml(date)}]</span>
           <span class="user${isModerator ? ' moderator' : ''}" 
-                style="color:${color}"
-                ondblclick="app.pmManager.openPrivateMessage('${user}')">&lt;${user}&gt;</span>
+                style="color:${this.escapeHtml(color)}"
+                data-user="${this.escapeHtml(user)}">&lt;${this.escapeHtml(user)}&gt;</span>
       `;
       
       // Add the message content
       if (fileAttachment) {
         if (fileAttachment.type.startsWith('image/')) {
+          const imageUrl = this.escapeHtml(fileAttachment.url || fileAttachment.data);
+          const imageName = this.escapeHtml(fileAttachment.name);
+          const uploadedBy = this.escapeHtml(fileAttachment.uploadedBy || 'Unknown');
+          const uploadedAt = fileAttachment.uploadedAt ? this.escapeHtml(new Date(fileAttachment.uploadedAt).toLocaleString()) : '';
+          const titleText = `Uploaded by ${uploadedBy}${uploadedAt ? ' on ' + uploadedAt : ''}`;
+          
           messageHtml += `
             <span class="text">
-              <img src="${fileAttachment.url || fileAttachment.data}" 
-                   alt="${fileAttachment.name}" 
-                   class="image-attachment"
-                   onclick="window.open('${fileAttachment.url || fileAttachment.data}', '_blank')"
-                   title="Uploaded by ${fileAttachment.uploadedBy || 'Unknown'} ${fileAttachment.uploadedAt ? 'on ' + new Date(fileAttachment.uploadedAt).toLocaleString() : ''}">
+              <img src="${imageUrl}" 
+                   alt="${imageName}" 
+                   class="image-attachment clickable-image"
+                   data-url="${imageUrl}"
+                   title="${this.escapeHtml(titleText)}">
             </span>
           `;
         } else {
@@ -199,14 +211,21 @@ export class MessageRenderer {
           const iconHtml = this.createIcon(iconName, { 
             style: { width: '16px', height: '16px', marginRight: '4px' }
           });
+          const fileUrl = this.escapeHtml(fileAttachment.url || fileAttachment.data);
+          const fileName = this.escapeHtml(fileAttachment.name);
+          const uploadedBy = this.escapeHtml(fileAttachment.uploadedBy || 'Unknown');
+          const uploadedAt = fileAttachment.uploadedAt ? this.escapeHtml(new Date(fileAttachment.uploadedAt).toLocaleString()) : '';
+          const titleText = `Uploaded by ${uploadedBy}${uploadedAt ? ' on ' + uploadedAt : ''}`;
+          const fileSize = this.formatFileSize(fileAttachment.size);
+          
           messageHtml += `
             <span class="text">
-              <a href="${fileAttachment.url || fileAttachment.data}" 
-                 ${fileAttachment.filename ? `download="${fileAttachment.name}"` : 'target="_blank"'}
+              <a href="${fileUrl}" 
+                 ${fileAttachment.filename ? `download="${fileName}"` : 'target="_blank" rel="noopener noreferrer"'}
                  class="file-attachment"
-                 title="Uploaded by ${fileAttachment.uploadedBy || 'Unknown'} ${fileAttachment.uploadedAt ? 'on ' + new Date(fileAttachment.uploadedAt).toLocaleString() : ''}">
+                 title="${this.escapeHtml(titleText)}">
                 ${iconHtml}
-                ${fileAttachment.name} (${this.formatFileSize(fileAttachment.size)})
+                ${fileName} (${this.escapeHtml(fileSize)})
               </a>
             </span>
           `;

@@ -10,6 +10,13 @@ export class SearchManager {
     this.setupEventListeners();
   }
   
+  // Security utility to escape HTML
+  escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
   setupEventListeners() {
     // Search input with debouncing
     let searchTimeout;
@@ -155,10 +162,10 @@ export class SearchManager {
       const messageId = `msg-${msg.time}-${index}`;
       
       return `
-        <div class="search-result-item" onclick="app.searchManager.jumpToMessage('${messageId}', ${msg.time})">
+        <div class="search-result-item" data-message-id="${this.escapeHtml(messageId)}" data-timestamp="${parseInt(msg.time)}">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <span style="color: ${color}; font-weight: bold;">${highlightedUser}</span>
-            <span style="color: #666; font-size: 12px;">${date}</span>
+            <span style="color: ${this.escapeHtml(color)}; font-weight: bold;">${highlightedUser}</span>
+            <span style="color: #666; font-size: 12px;">${this.escapeHtml(date)}</span>
           </div>
           <div>${highlightedText}</div>
         </div>
@@ -172,16 +179,28 @@ export class SearchManager {
     `;
     
     this.searchResults.innerHTML = headerHtml + html;
+    
+    // Add event listeners to search result items
+    this.searchResults.querySelectorAll('.search-result-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const messageId = item.getAttribute('data-message-id');
+        const timestamp = parseInt(item.getAttribute('data-timestamp'));
+        this.jumpToMessage(messageId, timestamp);
+      });
+    });
   }
   
   highlightSearchTerms(text, query) {
-    if (!query) return text;
+    if (!query) return this.escapeHtml(text);
     
-    // Escape special regex characters
+    // First escape the text to prevent XSS
+    const escapedText = this.escapeHtml(text);
+    
+    // Escape special regex characters in query
     const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedQuery})`, 'gi');
+    const regex = new RegExp(`(${this.escapeHtml(escapedQuery)})`, 'gi');
     
-    return text.replace(regex, '<span style="background: yellow; color: black;">$1</span>');
+    return escapedText.replace(regex, '<span style="background: yellow; color: black;">$1</span>');
   }
   
   jumpToMessage(messageId, timestamp) {
