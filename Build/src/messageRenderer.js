@@ -17,6 +17,13 @@ export class MessageRenderer {
     div.textContent = text;
     return div.innerHTML;
   }
+
+  // Escape for attribute contexts (adds quote escaping)
+  escapeAttr(s) {
+    return this.escapeHtml(String(s))
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
   
   // Helper method to create lucide icons
   createIcon(iconName, options = {}) {
@@ -104,11 +111,20 @@ export class MessageRenderer {
         'b','i','em','strong','u','a','p','ul','ol','li','code',
         'pre','img','h1','h2','h3','h4','h5','h6','br','span','div'
       ],
-      ALLOWED_ATTR: ['href','src','alt','title','target','style']
+      ALLOWED_ATTR: ['href','src','alt','title','target','style','rel']
     });
 
     // 3. Convert remaining plain URLs into clickable links
-    html = html.replace(/(?<!["'>])\bhttps?:\/\/[^\s<]+/g, '<a href="$&" target="_blank" rel="noopener noreferrer" style="color:#0066cc">$&</a>');
+    html = html.replace(/(?<!["'>])\bhttps?:\/\/[^\s<]+/g, (url) => {
+      const safeHref = this.escapeAttr(url);
+      const safeText = this.escapeHtml(url);
+      return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" style="color:#0066cc">${safeText}</a>`;
+    });
+    // Defense-in-depth: sanitize again
+    html = DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['b','i','em','strong','u','a','p','ul','ol','li','code','pre','img','h1','h2','h3','h4','h5','h6','br','span','div'],
+      ALLOWED_ATTR: ['href','src','alt','title','target','style','rel']
+    });
 
     return html;
   }
@@ -166,16 +182,16 @@ export class MessageRenderer {
       if (message.system) messageClass += ' system';
       
       let messageHtml = `
-        <div class="${messageClass}" id="${this.escapeHtml(messageId)}" 
-             data-user="${this.escapeHtml(user)}" 
-             data-time="${this.escapeHtml(time)}"
-             data-message-id="${this.escapeHtml(messageId)}">
+        <div class="${messageClass}" id="${this.escapeAttr(messageId)}"
+             data-user="${this.escapeAttr(user)}"
+             data-time="${this.escapeAttr(String(time))}"
+             data-message-id="${this.escapeAttr(messageId)}">
       `;
       
       // Add reply reference if this is a reply (before timestamp and user)
       if (replyInfo) {
         messageHtml += `
-          <div class="reply-reference" data-message-id="${this.escapeHtml(replyInfo.messageId)}">
+          <div class="reply-reference" data-message-id="${this.escapeAttr(replyInfo.messageId)}">
             ↳ Replying to ${this.escapeHtml(replyInfo.replyUser)}
           </div>
         `;
@@ -183,27 +199,27 @@ export class MessageRenderer {
       
       messageHtml += `
           <span class="time">[${this.escapeHtml(date)}]</span>
-          <span class="user${isModerator ? ' moderator' : ''}" 
-                style="color:${this.escapeHtml(color)}"
-                data-user="${this.escapeHtml(user)}">&lt;${this.escapeHtml(user)}&gt;</span>
+          <span class="user${isModerator ? ' moderator' : ''}"
+                style="color:${this.escapeAttr(color)}"
+                data-user="${this.escapeAttr(user)}">&lt;${this.escapeHtml(user)}&gt;</span>
       `;
       
       // Add the message content
       if (fileAttachment) {
         if (fileAttachment.type.startsWith('image/')) {
-          const imageUrl = this.escapeHtml(fileAttachment.url || fileAttachment.data);
-          const imageName = this.escapeHtml(fileAttachment.name);
+          const imageUrl = this.escapeAttr(fileAttachment.url || fileAttachment.data);
+          const imageName = this.escapeAttr(fileAttachment.name);
           const uploadedBy = this.escapeHtml(fileAttachment.uploadedBy || 'Unknown');
           const uploadedAt = fileAttachment.uploadedAt ? this.escapeHtml(new Date(fileAttachment.uploadedAt).toLocaleString()) : '';
           const titleText = `Uploaded by ${uploadedBy}${uploadedAt ? ' on ' + uploadedAt : ''}`;
           
           messageHtml += `
             <span class="text">
-              <img src="${imageUrl}" 
-                   alt="${imageName}" 
+              <img src="${imageUrl}"
+                   alt="${imageName}"
                    class="image-attachment clickable-image"
                    data-url="${imageUrl}"
-                   title="${this.escapeHtml(titleText)}">
+                   title="${this.escapeAttr(titleText)}">
             </span>
           `;
         } else {
@@ -211,7 +227,7 @@ export class MessageRenderer {
           const iconHtml = this.createIcon(iconName, { 
             style: { width: '16px', height: '16px', marginRight: '4px' }
           });
-          const fileUrl = this.escapeHtml(fileAttachment.url || fileAttachment.data);
+          const fileUrl = this.escapeAttr(fileAttachment.url || fileAttachment.data);
           const fileName = this.escapeHtml(fileAttachment.name);
           const uploadedBy = this.escapeHtml(fileAttachment.uploadedBy || 'Unknown');
           const uploadedAt = fileAttachment.uploadedAt ? this.escapeHtml(new Date(fileAttachment.uploadedAt).toLocaleString()) : '';
@@ -220,12 +236,12 @@ export class MessageRenderer {
           
           messageHtml += `
             <span class="text">
-              <a href="${fileUrl}" 
-                 ${fileAttachment.filename ? `download="${fileName}"` : 'target="_blank" rel="noopener noreferrer"'}
+              <a href="${fileUrl}"
+                 ${fileAttachment.filename ? `download="${this.escapeAttr(fileName)}"` : 'target="_blank" rel="noopener noreferrer"'}
                  class="file-attachment"
-                 title="${this.escapeHtml(titleText)}">
+                 title="${this.escapeAttr(titleText)}">
                 ${iconHtml}
-                ${fileName} (${this.escapeHtml(fileSize)})
+                ${this.escapeHtml(fileName)} (${this.escapeHtml(fileSize)})
               </a>
             </span>
           `;

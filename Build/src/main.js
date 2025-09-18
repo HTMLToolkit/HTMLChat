@@ -393,7 +393,7 @@ class HTMLChatApp {
     this.elements.welcomeDiv.innerHTML = '';
     
     // Create text node with safe content
-    const welcomeText = document.createTextNode('Welcome to HTMLChat!, ');
+    const welcomeText = document.createTextNode('Welcome to HTMLChat, ');
     const userBold = document.createElement('b');
     userBold.textContent = this.user;
     const middleText = document.createTextNode('! You are now in room ');
@@ -791,8 +791,9 @@ class HTMLChatApp {
       this.elements.roomSelect.value
     }?user=${encodeURIComponent(this.user)}`;
     try {
-      navigator.sendBeacon(url, JSON.stringify({ method: "DELETE" }));
+      await fetch(url, { method: "DELETE", keepalive: true });
     } catch (e) {
+      // Fallback: try again without awaiting in case of network issues
       fetch(url, { method: "DELETE", keepalive: true }).catch(() => {});
     }
   }

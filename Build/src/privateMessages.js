@@ -225,7 +225,7 @@ export class PrivateMessageManager {
       // Send PM to server - encode conversationId to handle special characters
       const res = await fetch(`${this.app.baseURL}/pm/${encodeURIComponent(conversationId)}?user=${encodeURIComponent(this.app.user)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: this.app.getAuthHeaders(true), // Include Content-Type and auth headers
         body: JSON.stringify({ text: message, to: username })
       });
       
@@ -285,7 +285,9 @@ export class PrivateMessageManager {
       const conversationId = [this.app.user, username].sort().join('_');
       
       // Fetch from server - encode conversationId to handle special characters
-      const res = await fetch(`${this.app.baseURL}/pm/${encodeURIComponent(conversationId)}?user=${encodeURIComponent(this.app.user)}`);
+      const res = await fetch(`${this.app.baseURL}/pm/${encodeURIComponent(conversationId)}?user=${encodeURIComponent(this.app.user)}`, {
+        headers: this.app.getAuthHeaders(false) // No Content-Type for GET requests
+      });
       
       if (res.ok) {
         const data = await res.json();

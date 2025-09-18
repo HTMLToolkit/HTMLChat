@@ -206,7 +206,7 @@ export class ContextMenuManager {
       try {
         const res = await fetch(`${this.app.baseURL}/mod/${this.app.elements.roomSelect.value}?user=${encodeURIComponent(this.app.user)}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: this.app.getAuthHeaders(true), // Include Content-Type and auth headers
           body: JSON.stringify({
             action: 'kick',
             targetUser: this.currentMessage.user,
@@ -239,7 +239,7 @@ export class ContextMenuManager {
       try {
         const res = await fetch(`${this.app.baseURL}/mod/${this.app.elements.roomSelect.value}?user=${encodeURIComponent(this.app.user)}`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: this.app.getAuthHeaders(true), // Include Content-Type and auth headers
           body: JSON.stringify({
             action: 'ban',
             targetUser: this.currentMessage.user,

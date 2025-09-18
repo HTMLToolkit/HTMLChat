@@ -107,17 +107,23 @@ export class SearchManager {
       const chunkSize = 50;
       let filteredMessages = [];
       
+      // Precompute username filter needle once for performance
+      const usernameFilterNeedle = this.userFilter.checked && this.usernameFilter.value.trim() 
+        ? this.usernameFilter.value.trim().toLowerCase() 
+        : null;
+      
       for (let i = 0; i < messages.length; i += chunkSize) {
         const chunk = messages.slice(i, i + chunkSize);
         
         const chunkFiltered = chunk.filter(msg => {
-          // Text search
-          const textMatch = msg.text.toLowerCase().includes(query) || 
-                           msg.user.toLowerCase().includes(query);
+          // Text search with null-safety
+          const safeText = String(msg.text || '').toLowerCase();
+          const safeUser = String(msg.user || '').toLowerCase();
+          const textMatch = safeText.includes(query) || safeUser.includes(query);
           
           // User filter
-          if (this.userFilter.checked && this.usernameFilter.value.trim()) {
-            const userMatch = msg.user.toLowerCase().includes(this.usernameFilter.value.trim().toLowerCase());
+          if (usernameFilterNeedle) {
+            const userMatch = safeUser.includes(usernameFilterNeedle);
             return textMatch && userMatch;
           }
           
@@ -153,11 +159,11 @@ export class SearchManager {
     
     const html = messages.map((msg, index) => {
       const date = new Date(msg.time).toLocaleString();
-      const color = this.app.messageRenderer.getUserColor(msg.user);
+      const color = this.app.messageRenderer.getUserColor(msg.user || '');
       
-      // Highlight search terms
-      let highlightedText = this.highlightSearchTerms(msg.text, query);
-      let highlightedUser = this.highlightSearchTerms(msg.user, query);
+      // Highlight search terms with null-safety
+      let highlightedText = this.highlightSearchTerms(msg.text || '', query);
+      let highlightedUser = this.highlightSearchTerms(msg.user || '', query);
       
       const messageId = `msg-${msg.time}-${index}`;
       
