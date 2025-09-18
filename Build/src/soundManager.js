@@ -50,6 +50,7 @@ export class SoundManager {
   toggleSounds() {
     this.soundsEnabled = !this.soundsEnabled;
     this.saveSetting('sounds_enabled', this.soundsEnabled);
+    console.log('Sound manager toggled to:', this.soundsEnabled); // Debug
     return this.soundsEnabled;
   }
   

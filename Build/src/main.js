@@ -1,12 +1,12 @@
 // Import modules
-import { SoundManager } from './soundManager.js';
-import { MessageRenderer } from './messageRenderer.js';
-import { PrivateMessageManager } from './privateMessages.js';
-import { FileUploadManager } from './fileUpload.js';
-import { SearchManager } from './search.js';
-import { NotificationManager } from './notifications.js';
-import { ContextMenuManager } from './contextMenu.js';
-import { ModeratorTools } from './moderatorTools.js';
+import { SoundManager } from "./soundManager.js";
+import { MessageRenderer } from "./messageRenderer.js";
+import { PrivateMessageManager } from "./privateMessages.js";
+import { FileUploadManager } from "./fileUpload.js";
+import { SearchManager } from "./search.js";
+import { NotificationManager } from "./notifications.js";
+import { ContextMenuManager } from "./contextMenu.js";
+import { ModeratorTools } from "./moderatorTools.js";
 
 // Global app state
 class HTMLChatApp {
@@ -40,7 +40,7 @@ class HTMLChatApp {
       sendBtn: document.getElementById("send-btn"),
       usersDiv: document.getElementById("users"),
       replyPreview: document.getElementById("reply-preview"),
-      soundToggle: document.getElementById("sound-toggle")
+      soundToggle: document.getElementById("sound-toggle"),
     };
 
     this.init();
@@ -87,25 +87,48 @@ class HTMLChatApp {
     await this.notificationManager.init();
 
     // Initialize Lucide icons
-    if (typeof lucide !== 'undefined') {
+    if (typeof lucide !== "undefined") {
       lucide.createIcons();
     }
 
     // Set initial sound toggle state
     const soundsEnabled = this.soundManager.isSoundEnabled();
     const soundToggle = this.elements.soundToggle;
-    const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
-    const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
 
-    if (soundsEnabled) {
-      soundOnIcon.style.display = 'inline';
-      soundOffIcon.style.display = 'none';
-      soundToggle.classList.remove('muted');
-    } else {
-      soundOnIcon.style.display = 'none';
-      soundOffIcon.style.display = 'inline';
-      soundToggle.classList.add('muted');
-    }
+    // Wait a bit for Lucide to initialize, then set the state
+    setTimeout(() => {
+      const soundOnIcon = soundToggle.querySelector(
+        '.sound-on-icon, [data-lucide="volume-2"]'
+      );
+      const soundOffIcon = soundToggle.querySelector(
+        '.sound-off-icon, [data-lucide="volume-x"]'
+      );
+
+      console.log("Initial sound state:", soundsEnabled); // Debug
+      console.log("Initial icons found:", { soundOnIcon, soundOffIcon }); // Debug
+
+      if (soundsEnabled) {
+        if (soundOnIcon) {
+          soundOnIcon.style.display = "inline";
+          soundOnIcon.style.visibility = "visible";
+        }
+        if (soundOffIcon) {
+          soundOffIcon.style.display = "none";
+          soundOffIcon.style.visibility = "hidden";
+        }
+        soundToggle.classList.remove("muted");
+      } else {
+        if (soundOnIcon) {
+          soundOnIcon.style.display = "none";
+          soundOnIcon.style.visibility = "hidden";
+        }
+        if (soundOffIcon) {
+          soundOffIcon.style.display = "inline";
+          soundOffIcon.style.visibility = "visible";
+        }
+        soundToggle.classList.add("muted");
+      }
+    }, 100); // Small delay to ensure Lucide has initialized
 
     // Start the app
     await this.fetchMessages(true);
@@ -119,19 +142,21 @@ class HTMLChatApp {
 
   setupEventListeners() {
     // Send message events
-    this.elements.sendBtn.addEventListener('click', () => this.sendMessage());
-    this.elements.input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    this.elements.sendBtn.addEventListener("click", () => this.sendMessage());
+    this.elements.input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         this.sendMessage();
       }
     });
 
     // Room change
-    this.elements.roomSelect.addEventListener('change', () => this.changeRoom());
+    this.elements.roomSelect.addEventListener("change", () =>
+      this.changeRoom()
+    );
 
     // Page visibility
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener("visibilitychange", () => {
       this.isVisible = !document.hidden;
 
       if (this.isVisible) {
@@ -143,32 +168,46 @@ class HTMLChatApp {
     });
 
     // Activity tracking
-    ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
-      document.addEventListener(event, () => {
-        this.lastActivity = Date.now();
-      }, { passive: true });
+    ["click", "keypress", "scroll", "mousemove"].forEach((event) => {
+      document.addEventListener(
+        event,
+        () => {
+          this.lastActivity = Date.now();
+        },
+        { passive: true }
+      );
     });
 
     // Enter key focus
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && document.activeElement !== this.elements.input && e.target.tagName !== 'BUTTON') {
+    document.addEventListener("keydown", (e) => {
+      if (
+        e.key === "Enter" &&
+        document.activeElement !== this.elements.input &&
+        e.target.tagName !== "BUTTON"
+      ) {
         this.elements.input.focus();
       }
     });
 
     // Window unload
-    window.addEventListener('beforeunload', () => this.leaveRoom());
+    window.addEventListener("beforeunload", () => this.leaveRoom());
 
     // Sound toggle
-    this.elements.soundToggle.addEventListener('click', () => this.toggleSounds());
+    this.elements.soundToggle.addEventListener("click", () =>
+      this.toggleSounds()
+    );
   }
 
   setupActivityTracking() {
     // Activity tracking for smart refresh
-    ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
-      document.addEventListener(event, () => {
-        this.lastActivity = Date.now();
-      }, { passive: true });
+    ["click", "keypress", "scroll", "mousemove"].forEach((event) => {
+      document.addEventListener(
+        event,
+        () => {
+          this.lastActivity = Date.now();
+        },
+        { passive: true }
+      );
     });
   }
 
@@ -191,20 +230,31 @@ class HTMLChatApp {
 
   updateUserList(users = null, userCount = null) {
     if (users && Array.isArray(users)) {
-      document.getElementById("user-count").textContent = userCount || users.length;
-      this.elements.usersDiv.innerHTML = users.map(u =>
-        `<div class="user-item${this.modTools.isModerator(u) ? ' moderator' : ''}" 
+      document.getElementById("user-count").textContent =
+        userCount || users.length;
+      this.elements.usersDiv.innerHTML = users
+        .map(
+          (u) =>
+            `<div class="user-item${
+              this.modTools.isModerator(u) ? " moderator" : ""
+            }" 
              style="color:${this.messageRenderer.getUserColor(u)}" 
              data-user="${u}"
              ondblclick="app.pmManager.openPrivateMessage('${u}')">${u}</div>`
-      ).join('');
+        )
+        .join("");
     } else {
       // Fallback to fake users
       const fakeUsers = [this.user, "ChatBot", "Guest123"];
       document.getElementById("user-count").textContent = fakeUsers.length;
-      this.elements.usersDiv.innerHTML = fakeUsers.map(u =>
-        `<div class="user-item" style="color:${this.messageRenderer.getUserColor(u)}">${u}</div>`
-      ).join('');
+      this.elements.usersDiv.innerHTML = fakeUsers
+        .map(
+          (u) =>
+            `<div class="user-item" style="color:${this.messageRenderer.getUserColor(
+              u
+            )}">${u}</div>`
+        )
+        .join("");
     }
   }
 
@@ -215,55 +265,74 @@ class HTMLChatApp {
   async fetchMessages(forceRefresh = false) {
     try {
       if (!forceRefresh) {
-        const cached = this.loadFromStorage(`htmlchat_${this.elements.roomSelect.value}`);
+        const cached = this.loadFromStorage(
+          `htmlchat_${this.elements.roomSelect.value}`
+        );
         if (cached && Array.isArray(cached)) {
-          this.elements.chatBox.innerHTML = this.messageRenderer.renderMessages(cached);
+          this.elements.chatBox.innerHTML =
+            this.messageRenderer.renderMessages(cached);
           this.scrollToBottom();
         }
       }
 
-      const res = await fetch(`${this.baseURL}/chat/${this.elements.roomSelect.value}`);
+      const res = await fetch(
+        `${this.baseURL}/chat/${this.elements.roomSelect.value}`
+      );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data = await res.json();
-      console.log('Received data:', data);
+      console.log("Received data:", data);
 
       const messages = data.messages || [];
       const users = data.users || [];
       const userCount = data.userCount || users.length;
 
       // Check for new messages for notifications and update stored message IDs
-      const lastMessageCount = this.loadFromStorage(`htmlchat_${this.elements.roomSelect.value}_count`) || 0;
-      if (messages.length > lastMessageCount && !this.isVisible && lastMessageCount > 0) {
+      const lastMessageCount =
+        this.loadFromStorage(
+          `htmlchat_${this.elements.roomSelect.value}_count`
+        ) || 0;
+      if (
+        messages.length > lastMessageCount &&
+        !this.isVisible &&
+        lastMessageCount > 0
+      ) {
         const newMessages = messages.slice(lastMessageCount);
-        newMessages.forEach(msg => {
+        newMessages.forEach((msg) => {
           if (msg.user !== this.user) {
             this.notificationManager.showNotification(msg.user, msg.text);
-            this.soundManager.playSound('message');
+            this.soundManager.playSound("message");
           }
         });
       }
-      this.saveToStorage(`htmlchat_${this.elements.roomSelect.value}_count`, messages.length);
+      this.saveToStorage(
+        `htmlchat_${this.elements.roomSelect.value}_count`,
+        messages.length
+      );
 
       // Store messages with proper IDs for deletion
-      this.elements.chatBox.innerHTML = this.messageRenderer.renderMessages(messages);
+      this.elements.chatBox.innerHTML =
+        this.messageRenderer.renderMessages(messages);
       this.scrollToBottom();
 
       // Re-initialize Lucide icons for new messages
-      if (typeof lucide !== 'undefined') {
+      if (typeof lucide !== "undefined") {
         lucide.createIcons();
       }
 
       this.updateUserList(users, userCount);
 
-      this.saveToStorage(`htmlchat_${this.elements.roomSelect.value}`, messages);
+      this.saveToStorage(
+        `htmlchat_${this.elements.roomSelect.value}`,
+        messages
+      );
       this.saveToStorage("htmlchat_messages", messages);
       this.updateStatus(true);
     } catch (e) {
       console.error("Fetch failed:", e);
       this.updateStatus(false);
 
-      if (this.elements.chatBox.innerHTML === '') {
+      if (this.elements.chatBox.innerHTML === "") {
         this.elements.chatBox.innerHTML = `
           <div class="msg system">
             <span class="time">[--:--]</span>
@@ -292,14 +361,19 @@ class HTMLChatApp {
       }
 
       // Generate message ID for tracking
-      const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const messageId = `msg_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
 
       const room = this.elements.roomSelect.value;
-      const res = await fetch(`${this.baseURL}/chat/${room}?user=${encodeURIComponent(this.user)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: finalMessage, messageId }),
-      });
+      const res = await fetch(
+        `${this.baseURL}/chat/${room}?user=${encodeURIComponent(this.user)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: finalMessage, messageId }),
+        }
+      );
 
       if (!res.ok) {
         const errorText = await res.text();
@@ -309,17 +383,16 @@ class HTMLChatApp {
       this.elements.input.value = "";
 
       // Play send sound
-      this.soundManager.playSound('message');
+      this.soundManager.playSound("message");
 
       // Fetch new messages
       await this.fetchMessages(true);
       this.scheduleNextRefresh(15000);
-
     } catch (e) {
       console.error("Send failed:", e);
 
-      if (e.message.includes('403')) {
-        alert("Message blocked: " + e.message.split(': ')[1]);
+      if (e.message.includes("403")) {
+        alert("Message blocked: " + e.message.split(": ")[1]);
       } else {
         alert("Message failed to send. Please try again.");
       }
@@ -342,9 +415,14 @@ class HTMLChatApp {
     const oldRoom = this.loadFromStorage("htmlchat_room") || "default";
     if (oldRoom !== this.elements.roomSelect.value) {
       try {
-        await fetch(`${this.baseURL}/chat/${oldRoom}?user=${encodeURIComponent(this.user)}`, {
-          method: "DELETE"
-        });
+        await fetch(
+          `${this.baseURL}/chat/${oldRoom}?user=${encodeURIComponent(
+            this.user
+          )}`,
+          {
+            method: "DELETE",
+          }
+        );
       } catch (e) {
         console.warn("Failed to leave room:", e);
       }
@@ -352,7 +430,8 @@ class HTMLChatApp {
 
     this.saveToStorage("htmlchat_room", this.elements.roomSelect.value);
     this.updateWelcome();
-    this.elements.chatBox.innerHTML = '<div class="msg system"><span class="time">[--:--]</span><span class="user">*** System ***</span><span class="text">Loading messages...</span></div>';
+    this.elements.chatBox.innerHTML =
+      '<div class="msg system"><span class="time">[--:--]</span><span class="user">*** System ***</span><span class="text">Loading messages...</span></div>';
 
     this.lastMessageTime = 0;
     this.lastFetchTime = 0;
@@ -378,9 +457,14 @@ class HTMLChatApp {
 
   async sendHeartbeat() {
     try {
-      await fetch(`${this.baseURL}/chat/${this.elements.roomSelect.value}?user=${encodeURIComponent(this.user)}`, {
-        method: "PUT"
-      });
+      await fetch(
+        `${this.baseURL}/chat/${
+          this.elements.roomSelect.value
+        }?user=${encodeURIComponent(this.user)}`,
+        {
+          method: "PUT",
+        }
+      );
     } catch (e) {
       console.warn("Heartbeat failed:", e);
     }
@@ -397,43 +481,71 @@ class HTMLChatApp {
   }
 
   async leaveRoom() {
-    const url = `${this.baseURL}/chat/${this.elements.roomSelect.value}?user=${encodeURIComponent(this.user)}`;
+    const url = `${this.baseURL}/chat/${
+      this.elements.roomSelect.value
+    }?user=${encodeURIComponent(this.user)}`;
     try {
-      navigator.sendBeacon(url, JSON.stringify({ method: 'DELETE' }));
+      navigator.sendBeacon(url, JSON.stringify({ method: "DELETE" }));
     } catch (e) {
-      fetch(url, { method: 'DELETE', keepalive: true }).catch(() => { });
+      fetch(url, { method: "DELETE", keepalive: true }).catch(() => {});
     }
   }
 
   // Reply functionality
   setReplyTo(messageId, user, text) {
     this.currentReplyTo = { id: messageId, user, text };
-    this.elements.replyPreview.style.display = 'flex';
-    this.elements.replyPreview.querySelector('.reply-text').textContent = `${user}: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`;
+    this.elements.replyPreview.style.display = "flex";
+    this.elements.replyPreview.querySelector(
+      ".reply-text"
+    ).textContent = `${user}: ${text.substring(0, 50)}${
+      text.length > 50 ? "..." : ""
+    }`;
     this.elements.input.focus();
   }
 
   cancelReply() {
     this.currentReplyTo = null;
-    this.elements.replyPreview.style.display = 'none';
+    this.elements.replyPreview.style.display = "none";
   }
 
   toggleSounds() {
     const isEnabled = this.soundManager.toggleSounds();
     const soundToggle = this.elements.soundToggle;
 
-    // Update icons
-    const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
-    const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
+    console.log("Sound toggle clicked, enabled:", isEnabled); // Debug
+
+    // Update icons - they might be SVG elements after Lucide initialization
+    const soundOnIcon = soundToggle.querySelector(
+      '.sound-on-icon, [data-lucide="volume-2"]'
+    );
+    const soundOffIcon = soundToggle.querySelector(
+      '.sound-off-icon, [data-lucide="volume-x"]'
+    );
+
+    console.log("Found icons:", { soundOnIcon, soundOffIcon }); // Debug
 
     if (isEnabled) {
-      soundOnIcon.style.display = 'inline';
-      soundOffIcon.style.display = 'none';
-      soundToggle.classList.remove('muted');
+      if (soundOnIcon) {
+        soundOnIcon.style.display = "inline";
+        soundOnIcon.style.visibility = "visible";
+      }
+      if (soundOffIcon) {
+        soundOffIcon.style.display = "none";
+        soundOffIcon.style.visibility = "hidden";
+      }
+      soundToggle.classList.remove("muted");
+      console.log("Showing sound ON icon"); // Debug
     } else {
-      soundOnIcon.style.display = 'none';
-      soundOffIcon.style.display = 'inline';
-      soundToggle.classList.add('muted');
+      if (soundOnIcon) {
+        soundOnIcon.style.display = "none";
+        soundOnIcon.style.visibility = "hidden";
+      }
+      if (soundOffIcon) {
+        soundOffIcon.style.display = "inline";
+        soundOffIcon.style.visibility = "visible";
+      }
+      soundToggle.classList.add("muted");
+      console.log("Showing sound OFF icon"); // Debug
     }
   }
 }
@@ -462,11 +574,11 @@ window.exportChat = function () {
   const exportData = {
     room: window.app.elements.roomSelect.value,
     exported: new Date().toISOString(),
-    messages: messages
+    messages: messages,
   };
 
   const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-    type: "application/json"
+    type: "application/json",
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -477,6 +589,6 @@ window.exportChat = function () {
 };
 
 // Initialize app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   window.app = new HTMLChatApp();
 });
