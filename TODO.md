@@ -12,4 +12,4 @@
 ```
 
 - [ ] make sound toggle work
-- [ ] use lucide icons
+- [X] use lucide icons

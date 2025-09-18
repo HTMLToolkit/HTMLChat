@@ -73,6 +73,11 @@ export class ContextMenuManager {
     this.menu.style.left = x + 'px';
     this.menu.style.top = y + 'px';
     this.menu.style.display = 'block';
+    
+    // Re-initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
   }
   
   hide() {

@@ -22,11 +22,26 @@
 <body>
   <!-- Context Menu -->
   <div id="context-menu" class="context-menu">
-    <div class="context-item" data-action="reply">Reply to Message</div>
-    <div class="context-item" data-action="delete">Delete Message</div>
-    <div class="context-item" data-action="pm">Private Message</div>
-    <div class="context-item" data-action="kick">Kick User</div>
-    <div class="context-item" data-action="ban">Ban User</div>
+    <div class="context-item" data-action="reply">
+      <i data-lucide="reply" class="context-icon"></i>
+      Reply to Message
+    </div>
+    <div class="context-item" data-action="delete">
+      <i data-lucide="trash-2" class="context-icon"></i>
+      Delete Message
+    </div>
+    <div class="context-item" data-action="pm">
+      <i data-lucide="mail" class="context-icon"></i>
+      Private Message
+    </div>
+    <div class="context-item" data-action="kick">
+      <i data-lucide="user-x" class="context-icon"></i>
+      Kick User
+    </div>
+    <div class="context-item" data-action="ban">
+      <i data-lucide="ban" class="context-icon"></i>
+      Ban User
+    </div>
   </div>
 
   <!-- Search Modal -->
@@ -34,7 +49,9 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Search Messages</h3>
-        <button class="close-btn" onclick="closeSearchModal()">×</button>
+        <button class="close-btn" onclick="closeSearchModal()">
+          <i data-lucide="x" style="width:16px;height:16px;"></i>
+        </button>
       </div>
       <div class="modal-body">
         <input type="text" id="search-input" placeholder="Search messages...">
@@ -52,7 +69,9 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Upload File</h3>
-        <button class="close-btn" onclick="closeUploadModal()">×</button>
+        <button class="close-btn" onclick="closeUploadModal()">
+          <i data-lucide="x" style="width:16px;height:16px;"></i>
+        </button>
       </div>
       <div class="modal-body">
         <div class="upload-area" id="upload-area">
@@ -77,13 +96,15 @@
   <div id="notification-banner" class="notification-banner" style="display: none;">
     <span>Enable notifications to get alerts when you receive messages</span>
     <button onclick="requestNotificationPermission()">Enable</button>
-    <button onclick="dismissNotificationBanner()">×</button>
+    <button onclick="dismissNotificationBanner()">
+      <i data-lucide="x" style="width:12px;height:12px;"></i>
+    </button>
   </div>
 
   <div class="container">
     <div class="header">
       <h1>HTMLChat</h1>
-      <p>version 0.2.0</p>
+      <p>version v0.2.0</p>
       <div class="header-controls">
         <button class="header-btn" onclick="toggleSounds()" id="sound-toggle" title="Toggle Sounds">
           <i data-lucide="volume-2" class="sound-on-icon"></i>
@@ -118,7 +139,9 @@
         <span class="reply-label">Replying to:</span>
         <span class="reply-text"></span>
       </div>
-      <button class="reply-cancel" onclick="cancelReply()">×</button>
+      <button class="reply-cancel" onclick="cancelReply()">
+        <i data-lucide="x" style="width:12px;height:12px;"></i>
+      </button>
     </div>
 
     <div class="main-content">

@@ -42,7 +42,9 @@ export class PrivateMessageManager {
     windowElement.innerHTML = `
       <div class="pm-header">
         <span>Private Message - ${username}</span>
-        <button class="pm-close-btn" onclick="app.pmManager.closePMWindow('${username}')">×</button>
+        <button class="pm-close-btn" onclick="app.pmManager.closePMWindow('${username}')">
+          <i data-lucide="x" style="width:12px;height:12px;"></i>
+        </button>
       </div>
       <div class="pm-chat" id="${windowId}-chat"></div>
       <div class="pm-input-area">
@@ -202,6 +204,11 @@ export class PrivateMessageManager {
     
     window.chat.innerHTML = html;
     window.chat.scrollTop = window.chat.scrollHeight;
+    
+    // Re-initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
   }
   
   async loadPMHistory(username) {

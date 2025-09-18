@@ -249,6 +249,11 @@ class HTMLChatApp {
       this.elements.chatBox.innerHTML = this.messageRenderer.renderMessages(messages);
       this.scrollToBottom();
 
+      // Re-initialize Lucide icons for new messages
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+
       this.updateUserList(users, userCount);
 
       this.saveToStorage(`htmlchat_${this.elements.roomSelect.value}`, messages);
@@ -402,16 +407,11 @@ class HTMLChatApp {
 
   // Reply functionality
   setReplyTo(messageId, user, text) {
-    const displayUser = user || "Unknown"; // fallback just in case
-    this.currentReplyTo = { id: messageId, user: displayUser, text };
-
+    this.currentReplyTo = { id: messageId, user, text };
     this.elements.replyPreview.style.display = 'flex';
-    this.elements.replyPreview.querySelector('.reply-text').textContent =
-      `${displayUser}: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`;
-
+    this.elements.replyPreview.querySelector('.reply-text').textContent = `${user}: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`;
     this.elements.input.focus();
   }
-
 
   cancelReply() {
     this.currentReplyTo = null;
@@ -441,27 +441,26 @@ class HTMLChatApp {
 // Global functions for HTML onclick handlers
 window.app = null;
 
-window.openSearchModal = () => app.searchManager.openModal();
-window.closeSearchModal = () => app.searchManager.closeModal();
-window.openUploadModal = () => app.fileManager.openModal();
-window.closeUploadModal = () => app.fileManager.closeModal();
-window.cancelReply = () => app.cancelReply();
-window.toggleSounds = () => app.toggleSounds();
-window.exportChat = () => exportChat();
-window.requestNotificationPermission = () => app.notificationManager.requestPermission();
-window.dismissNotificationBanner = () => app.notificationManager.dismissBanner();
-window.showNotificationSettings = () => app.notificationManager.showSettings();
+window.openSearchModal = () => window.app.searchManager.openModal();
+window.closeSearchModal = () => window.app.searchManager.closeModal();
+window.openUploadModal = () => window.app.fileManager.openModal();
+window.closeUploadModal = () => window.app.fileManager.closeModal();
+window.cancelReply = () => window.app.cancelReply();
+window.toggleSounds = () => window.app?.toggleSounds();
+window.requestNotificationPermission = () => window.app.notificationManager.requestPermission();
+window.dismissNotificationBanner = () => window.app.notificationManager.dismissBanner();
+window.showNotificationSettings = () => window.app.notificationManager.showSettings();
 
 // Export chat function
 window.exportChat = function () {
-  const messages = app.loadFromStorage("htmlchat_messages") || [];
+  const messages = window.app.loadFromStorage("htmlchat_messages") || [];
   if (messages.length === 0) {
     alert("No messages to export.");
     return;
   }
 
   const exportData = {
-    room: app.elements.roomSelect.value,
+    room: window.app.elements.roomSelect.value,
     exported: new Date().toISOString(),
     messages: messages
   };

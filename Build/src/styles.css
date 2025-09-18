@@ -225,15 +225,20 @@ body {
 }
 
 .msg .reply-reference {
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
   font-style: italic;
-  margin-left: 6px;
+  margin-bottom: 2px;
   cursor: pointer;
+  padding: 2px 4px;
+  background: rgba(33, 150, 243, 0.1);
+  border-radius: 3px;
+  display: inline-block;
 }
 
 .msg .reply-reference:hover {
   text-decoration: underline;
+  background: rgba(33, 150, 243, 0.2);
 }
 
 /* File/Image in Messages */
@@ -436,6 +441,9 @@ body {
   cursor: pointer;
   font-size: 14px;
   border-bottom: 1px dotted #ddd;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .context-item:hover {
@@ -444,6 +452,12 @@ body {
 
 .context-item:last-child {
   border-bottom: none;
+}
+
+.context-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
 /* Modal Styles */
