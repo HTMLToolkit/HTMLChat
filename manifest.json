@@ -1,6 +1,12 @@
 {
   "name": "HTMLChat",
   "short_name": "HTMLChat",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#00bfff",
+  "theme_color": "#00bfff",
+  "lang": "en",
+  "scope": "./",
   "icons": [
     {
       "src": "icons/icon-48x48.png",
@@ -52,9 +58,5 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ],
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#00c6ff",
-  "theme_color": "#00c6ff"
+  ]
 }
