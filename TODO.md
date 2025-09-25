@@ -2,6 +2,8 @@
 
 ## Done
 
+- [X] Move to vite-plugin-pwa
+
 ### v0.2.0
 
 - [X] delete messages,

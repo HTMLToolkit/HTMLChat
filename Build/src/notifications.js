@@ -180,7 +180,7 @@ export class NotificationManager {
   
   showTestNotification() {
     this.showNotification('HTMLChat', 'Notifications are now enabled!', {
-      icon: 'icons/icon-512x512.png',
+      icon: '/icon-512x512.png',
       tag: 'test-notification'
     });
   }
@@ -202,7 +202,7 @@ export class NotificationManager {
         
         const defaultOptions = {
           body: body,
-          icon: 'icons/icon-512x512.png',
+          icon: '/icon-512x512.png',
           tag: uniqueTag,
           requireInteraction: false,
           silent: !this.playSound
