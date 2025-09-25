@@ -1,333 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>HTMLChat</title>
-    <!-- Favicon for browsers -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="icons/icon-512x512.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="icons/icon-512x512.png"
-    />
 
-    <!-- Apple touch icon (iOS) -->
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="icons/icon-512x512.png"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HTMLChat</title>
+  <script type="module" crossorigin src="./assets/index-BmeuOnZ0.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-sefA4SGX.css">
+<link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script>
+<meta name="theme-color" content="#00bfff">
+<link rel="icon" href="./favicon.ico" sizes="48x48">
+<link rel="apple-touch-icon" href="./apple-touch-icon-180x180.png"></head>
 
-    <!-- Manifest -->
-    <link rel="manifest" href="src/manifest.json" />
+<body>
+  <!-- Context Menu -->
+  <div id="context-menu" class="context-menu">
+    <div class="context-item" data-action="reply">
+      <i class="context-icon" data-lucide="reply"></i>
+      Reply to Message
+    </div>
+    <div class="context-item" data-action="delete">
+      <i class="context-icon" data-lucide="trash-2"></i>
+      Delete Message
+    </div>
+    <div class="context-item" data-action="pm">
+      <i class="context-icon" data-lucide="mail"></i>
+      Private Message
+    </div>
+    <div class="context-item" data-action="kick">
+      <i class="context-icon" data-lucide="user-x"></i>
+      Kick User
+    </div>
+    <div class="context-item" data-action="ban">
+      <i class="context-icon" data-lucide="ban"></i>
+      Ban User
+    </div>
+  </div>
 
-    <!-- External Styles -->
-    <script type="module" crossorigin src="./assets/index-gTPnOUBK.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-sefA4SGX.css">
-  </head>
-  <body>
-    <!-- Context Menu -->
-    <div id="context-menu" class="context-menu">
-      <div class="context-item" data-action="reply">
-        <i class="context-icon" data-lucide="reply"></i>
-        Reply to Message
+  <!-- Search Modal -->
+  <div id="search-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Search Messages</h3>
+        <button class="close-btn" onclick="closeSearchModal()">
+          <i style="width: 16px; height: 16px" data-lucide="x"></i>
+        </button>
       </div>
-      <div class="context-item" data-action="delete">
-        <i class="context-icon" data-lucide="trash-2"></i>
-        Delete Message
-      </div>
-      <div class="context-item" data-action="pm">
-        <i class="context-icon" data-lucide="mail"></i>
-        Private Message
-      </div>
-      <div class="context-item" data-action="kick">
-        <i class="context-icon" data-lucide="user-x"></i>
-        Kick User
-      </div>
-      <div class="context-item" data-action="ban">
-        <i class="context-icon" data-lucide="ban"></i>
-        Ban User
+      <div class="modal-body">
+        <input type="text" id="search-input" placeholder="Search messages..." />
+        <div class="search-filters">
+          <label><input type="checkbox" id="search-user" /> Search by user
+            only</label>
+          <input type="text" id="search-username" placeholder="Username" />
+        </div>
+        <div id="search-results" class="search-results"></div>
       </div>
     </div>
+  </div>
 
-    <!-- Search Modal -->
-    <div id="search-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Search Messages</h3>
-          <button class="close-btn" onclick="closeSearchModal()">
-            <i style="width: 16px; height: 16px" data-lucide="x"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <input
-            type="text"
-            id="search-input"
-            placeholder="Search messages..."
-          />
-          <div class="search-filters">
-            <label
-              ><input type="checkbox" id="search-user" /> Search by user
-              only</label
-            >
-            <input type="text" id="search-username" placeholder="Username" />
-          </div>
-          <div id="search-results" class="search-results"></div>
-        </div>
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Settings</h3>
+        <button class="close-btn" onclick="closeSettingsModal()">
+          <i style="width: 16px; height: 16px" data-lucide="x"></i>
+        </button>
       </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div id="settings-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Settings</h3>
-          <button class="close-btn" onclick="closeSettingsModal()">
-            <i style="width: 16px; height: 16px" data-lucide="x"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="settings-section">
-            <h4>Notifications</h4>
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Desktop Notifications</span>
-                <div class="toggle-switch">
-                  <input type="checkbox" id="desktop-notifications-toggle">
-                  <span class="toggle-slider"></span>
-                </div>
-              </label>
-              <p class="setting-description">Show desktop notifications when you receive messages</p>
-            </div>
-            
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Notification Sounds</span>
-                <div class="toggle-switch">
-                  <input type="checkbox" id="notification-sounds-toggle">
-                  <span class="toggle-slider"></span>
-                </div>
-              </label>
-              <p class="setting-description">Play sounds with notifications</p>
-            </div>
-            
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>All Notifications</span>
-                <div class="toggle-switch">
-                  <input type="checkbox" id="all-notifications-toggle">
-                  <span class="toggle-slider"></span>
-                </div>
-              </label>
-              <p class="setting-description">Enable or disable all notifications</p>
-            </div>
-            
-            <div class="setting-item" id="browser-permission-status">
-              <div class="permission-status">
-                <span>Browser Permission: </span>
-                <span id="permission-status-text">Unknown</span>
-                <button id="request-permission-btn" class="small-btn" style="display: none;">Enable</button>
+      <div class="modal-body">
+        <div class="settings-section">
+          <h4>Notifications</h4>
+          <div class="setting-item">
+            <label class="setting-label">
+              <span>Desktop Notifications</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="desktop-notifications-toggle">
+                <span class="toggle-slider"></span>
               </div>
-            </div>
+            </label>
+            <p class="setting-description">Show desktop notifications when you receive messages</p>
           </div>
-          
-          <div class="settings-section">
-            <h4>Sounds</h4>
-            <div class="setting-item">
-              <label class="setting-label">
-                <span>Message Sounds</span>
-                <div class="toggle-switch">
-                  <input type="checkbox" id="message-sounds-toggle">
-                  <span class="toggle-slider"></span>
-                </div>
-              </label>
-              <p class="setting-description">Play sounds when messages are received or sent</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- File Upload Modal -->
-    <div id="upload-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Upload File</h3>
-          <button class="close-btn" onclick="closeUploadModal()">
-            <i style="width: 16px; height: 16px" data-lucide="x"></i>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="upload-area" id="upload-area">
-            <div class="upload-text">
-              <div class="upload-icon">
-                <i style="width: 48px; height: 48px" data-lucide="folder"></i>
+          <div class="setting-item">
+            <label class="setting-label">
+              <span>Notification Sounds</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="notification-sounds-toggle">
+                <span class="toggle-slider"></span>
               </div>
-              <p>Drag & drop files here or click to browse</p>
-              <p class="upload-limit">Max 5MB • Images, documents, audio</p>
-            </div>
-            <input
-              type="file"
-              id="file-input"
-              accept="image/*,audio/*,.pdf,.doc,.docx,.txt"
-            />
+            </label>
+            <p class="setting-description">Play sounds with notifications</p>
           </div>
-          <div id="upload-preview" class="upload-preview"></div>
+
+          <div class="setting-item">
+            <label class="setting-label">
+              <span>All Notifications</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="all-notifications-toggle">
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+            <p class="setting-description">Enable or disable all notifications</p>
+          </div>
+
+          <div class="setting-item" id="browser-permission-status">
+            <div class="permission-status">
+              <span>Browser Permission: </span>
+              <span id="permission-status-text">Unknown</span>
+              <button id="request-permission-btn" class="small-btn" style="display: none;">Enable</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h4>Sounds</h4>
+          <div class="setting-item">
+            <label class="setting-label">
+              <span>Message Sounds</span>
+              <div class="toggle-switch">
+                <input type="checkbox" id="message-sounds-toggle">
+                <span class="toggle-slider"></span>
+              </div>
+            </label>
+            <p class="setting-description">Play sounds when messages are received or sent</p>
+          </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Private Message Windows Container -->
-    <div id="pm-windows"></div>
+  <!-- File Upload Modal -->
+  <div id="upload-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Upload File</h3>
+        <button class="close-btn" onclick="closeUploadModal()">
+          <i style="width: 16px; height: 16px" data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="upload-area" id="upload-area">
+          <div class="upload-text">
+            <div class="upload-icon">
+              <i style="width: 48px; height: 48px" data-lucide="folder"></i>
+            </div>
+            <p>Drag & drop files here or click to browse</p>
+            <p class="upload-limit">Max 5MB • Images, documents, audio</p>
+          </div>
+          <input type="file" id="file-input" accept="image/*,audio/*,.pdf,.doc,.docx,.txt" />
+        </div>
+        <div id="upload-preview" class="upload-preview"></div>
+      </div>
+    </div>
+  </div>
 
-    <!-- Notification Permission Banner -->
-    <div
-      id="notification-banner"
-      class="notification-banner"
-      style="display: none"
-    >
-      <span>Enable notifications to get alerts when you receive messages</span>
-      <button onclick="requestNotificationPermission()">Enable</button>
-      <button onclick="dismissNotificationBanner()">
+  <!-- Private Message Windows Container -->
+  <div id="pm-windows"></div>
+
+  <!-- Notification Permission Banner -->
+  <div id="notification-banner" class="notification-banner" style="display: none">
+    <span>Enable notifications to get alerts when you receive messages</span>
+    <button onclick="requestNotificationPermission()">Enable</button>
+    <button onclick="dismissNotificationBanner()">
+      <i style="width: 12px; height: 12px" data-lucide="x"></i>
+    </button>
+  </div>
+
+  <div class="container">
+    <div class="header">
+      <h1>HTMLChat</h1>
+      <p>version v0.2.0</p>
+      <div class="header-controls">
+        <button class="header-btn" id="sound-toggle" title="Toggle Sounds">
+          <i class="sound-on-icon" data-lucide="volume-2"></i>
+          <i class="sound-off-icon" data-lucide="volume-x" style="display: none"></i>
+        </button>
+        <button class="header-btn" onclick="openSearchModal()" title="Search Messages">
+          <i data-lucide="search"></i>
+        </button>
+        <button class="header-btn" onclick="openSettingsModal()" title="Settings">
+          <i data-lucide="settings"></i>
+        </button>
+        <button class="minimize-btn" onclick="window.close()">×</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <label for="room-select">Room:</label>
+      <select id="room-select" class="room-select">
+        <option value="default">#general</option>
+        <option value="fun">#random</option>
+        <option value="random">#offtopic</option>
+        <option value="tech">#computers</option>
+      </select>
+      <button class="toolbar-btn" onclick="openUploadModal()" title="Upload File">
+        <i data-lucide="paperclip"></i>
+      </button>
+      <span class="user-count">Users online: <span id="user-count">1</span></span>
+    </div>
+
+    <div id="welcome" class="welcome"></div>
+
+    <!-- Reply Preview -->
+    <div id="reply-preview" class="reply-preview" style="display: none">
+      <div class="reply-content">
+        <span class="reply-label">Replying to:</span>
+        <span class="reply-text"></span>
+      </div>
+      <button class="reply-cancel" onclick="cancelReply()">
         <i style="width: 12px; height: 12px" data-lucide="x"></i>
       </button>
     </div>
 
-    <div class="container">
-      <div class="header">
-        <h1>HTMLChat</h1>
-        <p>version v0.2.0</p>
-        <div class="header-controls">
-          <button
-            class="header-btn"
-            id="sound-toggle"
-            title="Toggle Sounds"
-          >
-            <i class="sound-on-icon" data-lucide="volume-2"></i>
-            <i
-              class="sound-off-icon"
-              data-lucide="volume-x"
-              style="display: none"
-            ></i>
-          </button>
-          <button
-            class="header-btn"
-            onclick="openSearchModal()"
-            title="Search Messages"
-          >
-            <i data-lucide="search"></i>
-          </button>
-          <button
-            class="header-btn"
-            onclick="openSettingsModal()"
-            title="Settings"
-          >
-            <i data-lucide="settings"></i>
-          </button>
-          <button class="minimize-btn" onclick="window.close()">×</button>
-        </div>
-      </div>
-
-      <div class="toolbar">
-        <label for="room-select">Room:</label>
-        <select id="room-select" class="room-select">
-          <option value="default">#general</option>
-          <option value="fun">#random</option>
-          <option value="random">#offtopic</option>
-          <option value="tech">#computers</option>
-        </select>
-        <button
-          class="toolbar-btn"
-          onclick="openUploadModal()"
-          title="Upload File"
-        >
-          <i data-lucide="paperclip"></i>
-        </button>
-        <span class="user-count"
-          >Users online: <span id="user-count">1</span></span
-        >
-      </div>
-
-      <div id="welcome" class="welcome"></div>
-
-      <!-- Reply Preview -->
-      <div id="reply-preview" class="reply-preview" style="display: none">
-        <div class="reply-content">
-          <span class="reply-label">Replying to:</span>
-          <span class="reply-text"></span>
-        </div>
-        <button class="reply-cancel" onclick="cancelReply()">
-          <i style="width: 12px; height: 12px" data-lucide="x"></i>
-        </button>
-      </div>
-
-      <div class="main-content">
-        <div class="chat-area">
-          <div id="chat" class="chat-box"></div>
-          <div class="input-area">
-            <div id="chat-form" class="input-container">
-              <input
-                id="msg"
-                class="msg-input"
-                placeholder="Type message here..."
-                maxlength="1000"
-              />
-              <button type="button" class="send-btn" id="send-btn">Send</button>
-            </div>
+    <div class="main-content">
+      <div class="chat-area">
+        <div id="chat" class="chat-box"></div>
+        <div class="input-area">
+          <div id="chat-form" class="input-container">
+            <input id="msg" class="msg-input" placeholder="Type message here..." maxlength="1000" />
+            <button type="button" class="send-btn" id="send-btn">Send</button>
           </div>
         </div>
-
-        <div class="user-list">
-          <div class="user-list-header">Users</div>
-          <div id="users"></div>
-        </div>
       </div>
 
-      <div class="status-bar">
-        <div class="connection-status">
-          <div class="status-dot" id="status-dot"></div>
-          <span id="status-text">Connected</span>
-        </div>
-        <div>
-          <button onclick="reloadChats()" id="reload-btn" class="status-btn" title="Reload chats">Reload</button>
-          <button onclick="exportChat()" class="status-btn">Export</button>
-        </div>
+      <div class="user-list">
+        <div class="user-list-header">Users</div>
+        <div id="users"></div>
       </div>
     </div>
 
-    <!-- Audio files (using data URLs for retro sounds) -->
-    <audio id="sound-message" preload="auto">
-      <source
-        src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
-        type="audio/wav"
-      />
-    </audio>
+    <div class="status-bar">
+      <div class="connection-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connected</span>
+      </div>
+      <div>
+        <button onclick="reloadChats()" id="reload-btn" class="status-btn" title="Reload chats">Reload</button>
+        <button onclick="exportChat()" class="status-btn">Export</button>
+      </div>
+    </div>
+  </div>
 
-    <audio id="sound-pm" preload="auto">
-      <source
-        src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
-        type="audio/wav"
-      />
-    </audio>
+  <!-- Audio files (using data URLs for retro sounds) -->
+  <audio id="sound-message" preload="auto">
+    <source
+      src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
+      type="audio/wav" />
+  </audio>
 
-    <audio id="sound-join" preload="auto">
-      <source
-        src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
-        type="audio/wav"
-      />
-    </audio>
+  <audio id="sound-pm" preload="auto">
+    <source
+      src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
+      type="audio/wav" />
+  </audio>
 
-    <!-- JavaScript -->
-    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-    <script>
-      eruda.init();
-    </script>
-  </body>
+  <audio id="sound-join" preload="auto">
+    <source
+      src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcAke5+fCKaB"
+      type="audio/wav" />
+  </audio>
+
+  <!-- JavaScript -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>
+    eruda.init();
+  </script>
+</body>
+
 </html>
