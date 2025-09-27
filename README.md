@@ -55,7 +55,7 @@ You can swap `baseURL` in the JS if you want to host your own.
 
 MIT, because why not.
 
-## Contributing
+# Contributing
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -67,7 +67,6 @@ MIT, because why not.
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## Star History
-
 <a href="https://www.star-history.com/#HTMLToolkit/HTMLChat&Date">
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date&theme=dark" />
