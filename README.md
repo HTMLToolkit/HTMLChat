@@ -1,4 +1,5 @@
 # HTMLChat 💬
+[![GitHub Pages Build](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml/badge.svg)](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml)
 
 A retro-styled, browser-only chat client.  
 Version: **v0.2.0-beta**
@@ -52,3 +53,24 @@ You can swap `baseURL` in the JS if you want to host your own.
 ## License
 
 MIT, because why not.
+
+## Contributing
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+## Star History
+
+<a href="https://www.star-history.com/#HTMLToolkit/HTMLChat&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date" />
+ </picture>
+</a>
