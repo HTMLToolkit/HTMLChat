@@ -1,5 +1,6 @@
 # HTMLChat 💬
-[![GitHub Pages Build](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml/badge.svg)](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml)
+[![GitHub Pages Build](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml/badge.svg)](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml) [![All Contributors](https://img.shields.io/github/all-contributors/HTMLToolkit/HTMLChat?color=ee8449&style=flat-square)](#contributors)
+
 
 A retro-styled, browser-only chat client.  
 Version: **v0.2.0-beta**
