@@ -2,8 +2,7 @@
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
-[![GitHub Pages Build](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml/badge.svg)](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml) [![All Contributors](https://img.shields.io/github/all-contributors/HTMLToolkit/HTMLChat?color=ee8449&style=flat-square)](#contributors)
-
+[![GitHub Pages Build](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml/badge.svg)](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml) 
 
 A retro-styled, browser-only chat client.  
 Version: **v0.2.0-beta**
