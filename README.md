@@ -75,15 +75,6 @@ MIT, because why not.
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-## Star History
-<a href="https://www.star-history.com/#HTMLToolkit/HTMLChat&Date">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date" />
- </picture>
-</a>
-
 ## Contributors ✨
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
@@ -96,3 +87,12 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
+
+## Star History
+<a href="https://www.star-history.com/#HTMLToolkit/HTMLChat&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=HTMLToolkit/HTMLChat&type=Date" />
+ </picture>
+</a>
