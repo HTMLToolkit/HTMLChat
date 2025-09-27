@@ -1,0 +1,28 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "ET-Tha-Dev",
+      "name": "ET-Tha-Dev",
+      "avatar_url": "https://avatars.githubusercontent.com/u/203461701?v=4",
+      "profile": "https://github.com/ET-Tha-Dev",
+      "contributions": [
+        "promotion",
+        "userTesting",
+        "ideas"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "projectName": "HTMLChat",
+  "projectOwner": "HTMLToolkit"
+}
