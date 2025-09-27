@@ -4,7 +4,9 @@
 
 - [X] Move to vite-plugin-pwa
 
-### v0.2.0
+### Old Versions
+
+#### v0.2.0
 
 - [X] delete messages,
 - [X] search freezes page (make async/non blocking)
