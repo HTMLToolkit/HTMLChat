@@ -269,7 +269,7 @@ export class PrivateMessageManager {
       return `
         <div class="msg">
           <span class="time">[${this.escapeHTML(date)}]</span>
-          <span class="user" style="color:${this.escapeHTML(color)}">&lt;${this.escapeHTML(msg.from)}&gt;</span>
+          <span class="user" style="color:${this.escapeAttr(color)}">&lt;${this.escapeHTML(msg.from)}&gt;</span>
           <span class="text">${processedText}</span>
         </div>
       `;
