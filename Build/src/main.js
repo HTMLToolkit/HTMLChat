@@ -12,6 +12,62 @@ import { NotificationManager } from "./notifications.js";
 import { ContextMenuManager } from "./contextMenu.js";
 import { ModeratorTools } from "./moderatorTools.js";
 
+// WebCrypto-based encrypt/decrypt helpers for sensitive values
+async function getKeyFromPassphrase(passphrase, salt) {
+  const encoder = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    "raw",
+    encoder.encode(passphrase),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+  return window.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 50000,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
+async function encryptData(plain, passphrase) {
+  const encoder = new TextEncoder();
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const key = await getKeyFromPassphrase(passphrase, salt);
+  const ciphertext = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    encoder.encode(plain)
+  );
+  // Return salt + iv + ciphertext as Base64
+  const dataBuffer = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+  dataBuffer.set(salt, 0);
+  dataBuffer.set(iv, salt.length);
+  dataBuffer.set(new Uint8Array(ciphertext), salt.length + iv.length);
+  return btoa(String.fromCharCode.apply(null, dataBuffer));
+}
+
+async function decryptData(data_b64, passphrase) {
+  const raw = Uint8Array.from(atob(data_b64), c => c.charCodeAt(0));
+  const salt = raw.slice(0, 16);
+  const iv = raw.slice(16, 28);
+  const ciphertext = raw.slice(28);
+  const key = await getKeyFromPassphrase(passphrase, salt);
+  const decrypted = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    key,
+    ciphertext
+  );
+  return new TextDecoder().decode(decrypted);
+}
+
 // Global app state
 class HTMLChatApp {
   constructor() {
@@ -159,18 +215,38 @@ class HTMLChatApp {
   }
 
   // Simple storage helpers
-  saveToStorage(key, data) {
+  async saveToStorage(key, data, passphrase = null) {
     try {
-      localStorage.setItem(key, JSON.stringify(data));
+      if (key === "htmlchat_auth_token") {
+        // Encrypt sensitive token with passphrase before storage
+        if (!passphrase) throw new Error("Missing passphrase for sensitive storage");
+        const encrypted = await encryptData(data, passphrase);
+        localStorage.setItem(key, JSON.stringify({ encrypted: encrypted }));
+      } else {
+        localStorage.setItem(key, JSON.stringify(data));
+      }
     } catch (e) {
       console.warn("Storage failed:", e);
     }
   }
 
-  loadFromStorage(key) {
+  async loadFromStorage(key, passphrase = null) {
     try {
       const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : null;
+      if (key === "htmlchat_auth_token" && data && passphrase) {
+        const obj = JSON.parse(data);
+        if (obj && obj.encrypted) {
+          try {
+            return await decryptData(obj.encrypted, passphrase);
+          } catch (de) {
+            console.warn("Failed to decrypt auth token:", de);
+            return null;
+          }
+        }
+        return null;
+      } else {
+        return data ? JSON.parse(data) : null;
+      }
     } catch (e) {
       console.warn("Load failed:", e);
       return null;
@@ -179,30 +255,42 @@ class HTMLChatApp {
 
   async init() {
     // Get or prompt for username
-    this.user = this.loadFromStorage("htmlchat_user");
-    this.authToken = this.loadFromStorage("htmlchat_auth_token");
+    this.user = await this.loadFromStorage("htmlchat_user");    
+    this.authToken = null;
+    this._authPassphrase = null;
     
     if (!this.user) {
       do {
         this.user = prompt("Enter your nickname:") || "";
         this.user = this.user.trim().substring(0, 20);
       } while (!this.user);
-      this.saveToStorage("htmlchat_user", this.user);
+      await this.saveToStorage("htmlchat_user", this.user);
       
-      // If user is NellowTCS, prompt for moderator password
+      // If user is NellowTCS, prompt for moderator password & passphrase to encrypt
       if (this.user.toLowerCase() === 'nellowtcs') {
-        const authPassword = prompt("Enter moderator password:");
-        if (authPassword) {
-          this.authToken = authPassword;
-          this.saveToStorage("htmlchat_auth_token", this.authToken);
-        }
+        let pw = prompt("Enter moderator password:");
+        if (pw) { 
+          // Ask for a passphrase to encrypt the saved token (can use same value for simplicity)
+          let passphrase = prompt("Provide a passphrase to protect your moderator token:", "");
+          if (!passphrase) passphrase = pw; // fallback for less friction
+          this._authPassphrase = passphrase;
+          this.authToken = pw;
+          await this.saveToStorage("htmlchat_auth_token", this.authToken, this._authPassphrase);
       }
-    } else if (this.user.toLowerCase() === 'nellowtcs' && !this.authToken) {
-      // Existing NellowTCS user without saved auth token
-      const authPassword = prompt("Enter moderator password:");
-      if (authPassword) {
-        this.authToken = authPassword;
-        this.saveToStorage("htmlchat_auth_token", this.authToken);
+    } else if (this.user.toLowerCase() === 'nellowtcs') {
+      // Try to load existing moderator token
+      let passphrase = prompt("Enter passphrase to unlock moderator password:");
+      this._authPassphrase = passphrase;
+      if (passphrase) {
+        this.authToken = await this.loadFromStorage("htmlchat_auth_token", passphrase);
+        // Fallback: If not found or passphrase fails, allow prompt for token (+store new encrypted)
+        if (!this.authToken) {
+          let pw = prompt("Enter moderator password:");
+          if (pw) {
+            this.authToken = pw;
+            await this.saveToStorage("htmlchat_auth_token", pw, passphrase);
+          }
+        }
       }
     }
 
