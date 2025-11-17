@@ -1,6 +1,5 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
-import { Image, Music, FileText, Paperclip } from 'lucide';
 
 export class MessageRenderer {
   constructor(app) {
@@ -25,62 +24,14 @@ export class MessageRenderer {
       .replace(/'/g, '&#39;');
   }
   
-  // Helper method to create lucide icons
+  // Helper method to create lucide icons (delegates to app)
   createIcon(iconName, options = {}) {
-    const iconMap = {
-      'image': Image,
-      'music': Music,
-      'file-text': FileText,
-      'paperclip': Paperclip
-    };
-    
-    const IconComponent = iconMap[iconName];
-    if (!IconComponent) {
-      console.warn(`Icon "${iconName}" not found`);
+    // Return HTML string (outerHTML) for convenient insertion into innerHTML
+    if (!this.app || typeof this.app.createIconHTML !== 'function') {
+      console.warn('App.createIconHTML not available');
       return '';
     }
-    
-    const size = options.size || 16;
-    const strokeWidth = options.strokeWidth || 2;
-    
-    // Create SVG element
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', size);
-    svg.setAttribute('height', size);
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', strokeWidth);
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-    
-    // Add paths from the icon component
-    IconComponent.forEach(pathData => {
-      if (pathData && pathData[0] === 'path') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', pathData[1].d || '');
-        svg.appendChild(path);
-      } else if (pathData && pathData[0] === 'circle') {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', pathData[1].cx || '');
-        circle.setAttribute('cy', pathData[1].cy || '');
-        circle.setAttribute('r', pathData[1].r || '');
-        svg.appendChild(circle);
-      } else if (pathData && pathData[0] === 'line') {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', pathData[1].x1 || '');
-        line.setAttribute('y1', pathData[1].y1 || '');
-        line.setAttribute('x2', pathData[1].x2 || '');
-        line.setAttribute('y2', pathData[1].y2 || '');
-        svg.appendChild(line);
-      }
-    });
-    
-    if (options.style) {
-      Object.assign(svg.style, options.style);
-    }
-    
-    return svg.outerHTML;
+    return this.app.createIconHTML(iconName, options);
   }
 
   getUserColor(user) {
@@ -152,7 +103,6 @@ export class MessageRenderer {
         const [fullMatch, messageId, replyUser, messageText] = replyMatch;
         replyInfo = { messageId, replyUser };
         actualText = messageText.trim();
-        console.log('Reply parsed:', { messageId, replyUser, messageText }); // Debug
       }
       
       // Check for file attachments

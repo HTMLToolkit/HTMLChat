@@ -1,5 +1,3 @@
-import { X } from 'lucide';
-
 export class PrivateMessageManager {
   constructor(app) {
     this.app = app;
@@ -55,35 +53,9 @@ export class PrivateMessageManager {
     windowElement.style.left = `${100 + offset}px`;
     windowElement.style.top = `${100 + offset}px`;
     
-    // Create close icon
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '12');
-    svg.setAttribute('height', '12');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', '2');
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-    
-    // Add paths from X icon
-    X.forEach(pathData => {
-      if (pathData && pathData[0] === 'path') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', pathData[1].d || '');
-        svg.appendChild(path);
-      } else if (pathData && pathData[0] === 'line') {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', pathData[1].x1 || '');
-        line.setAttribute('y1', pathData[1].y1 || '');
-        line.setAttribute('x2', pathData[1].x2 || '');
-        line.setAttribute('y2', pathData[1].y2 || '');
-        svg.appendChild(line);
-      }
-    });
-    
-    const closeIconHtml = svg.outerHTML;
-    
+    // Create close icon via app helper
+    const closeIconHtml = this.app.createIconHTML('x', { size: 12 });
+
     // Create header
     const header = document.createElement('div');
     header.className = 'pm-header';

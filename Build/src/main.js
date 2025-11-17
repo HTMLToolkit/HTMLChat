@@ -1,9 +1,5 @@
 // Import modules
-import { SoundManager } from "./soundManager.js";
-import {
-  Volume2, VolumeX, Search, Reply, Trash2, Mail, UserX, Ban, X,
-  Folder, Paperclip, Bell, Image, Music, FileText, Settings
-} from 'lucide';
+import * as lucide from 'lucide';
 import { MessageRenderer } from "./messageRenderer.js";
 import { PrivateMessageManager } from "./privateMessages.js";
 import { FileUploadManager } from "./fileUpload.js";
@@ -11,6 +7,7 @@ import { SearchManager } from "./search.js";
 import { NotificationManager } from "./notifications.js";
 import { ContextMenuManager } from "./contextMenu.js";
 import { ModeratorTools } from "./moderatorTools.js";
+import { SoundManager } from "./soundManager.js";
 
 // WebCrypto-based encrypt/decrypt helpers for sensitive values
 async function getKeyFromPassphrase(passphrase, salt) {
@@ -68,6 +65,14 @@ async function decryptData(data_b64, passphrase) {
   return new TextDecoder().decode(decrypted);
 }
 
+// Utility: convert lucide icon name (e.g. 'trash-2' or 'file-text') => PascalCase export name ('Trash2', 'FileText')
+function toPascal(iconName) {
+  return iconName
+    .split(/[-_]/)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('');
+}
+
 // Global app state
 class HTMLChatApp {
   constructor() {
@@ -81,40 +86,26 @@ class HTMLChatApp {
     this.lastFetchTime = 0;
     this.currentReplyTo = null;
 
-    // Icon mappings for lucide
-    this.icons = {
-      'volume-2': Volume2,
-      'volume-x': VolumeX,
-      'search': Search,
-      'reply': Reply,
-      'trash-2': Trash2,
-      'mail': Mail,
-      'user-x': UserX,
-      'ban': Ban,
-      'x': X,
-      'folder': Folder,
-      'paperclip': Paperclip,
-      'bell': Bell,
-      'image': Image,
-      'music': Music,
-      'file-text': FileText,
-      'settings': Settings
-    };
+    // lucide module reference (imported above)
+    this.lucideModule = lucide;
 
-    // Initialize managers
-    this.soundManager = new SoundManager();
-    this.messageRenderer = new MessageRenderer(this);
-    this.pmManager = new PrivateMessageManager(this);
-    this.fileManager = new FileUploadManager(this);
-    this.searchManager = new SearchManager(this);
-    this.notificationManager = new NotificationManager(this);
-    this.contextMenu = new ContextMenuManager(this);
-    this.modTools = new ModeratorTools(this);
+    // Icon cache (name -> lucide icon definition)
+    this.icons = {};
+
+    // Initialize managers placeholders
+    this.soundManager = null;
+    this.messageRenderer = null;
+    this.pmManager = null;
+    this.fileManager = null;
+    this.searchManager = null;
+    this.notificationManager = null;
+    this.contextMenu = null;
+    this.modTools = null;
 
     // Server-side moderator status (authoritative)
     this.serverIsModerator = false;
 
-    // DOM elements
+    // DOM elements (grabbed after DOM exists)
     this.elements = {
       roomSelect: document.getElementById("room-select"),
       welcomeDiv: document.getElementById("welcome"),
@@ -129,18 +120,21 @@ class HTMLChatApp {
     this.init();
   }
 
-  // Helper method to create lucide icons
+  // Helper: create an SVG Element for an iconName using lucide exports.
   createIcon(iconName, options = {}) {
-    const IconComponent = this.icons[iconName];
+    const pascal = toPascal(iconName);
+    // Try provided cache first
+    let IconComponent = this.icons[iconName] || this.lucideModule[pascal];
+
     if (!IconComponent) {
-      console.warn(`Icon "${iconName}" not found`);
+      console.warn(`Lucide icon "${iconName}" not found as "${pascal}".`);
       return null;
     }
 
-    const size = options.size || 16;
+    const size = options.size || parseInt(options.size) || 16;
     const strokeWidth = options.strokeWidth || 2;
 
-    // Create SVG element
+    // Build an SVG element from the lucide icon definition (which is an array of tuples)
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('width', size);
     svg.setAttribute('height', size);
@@ -151,37 +145,56 @@ class HTMLChatApp {
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
 
-    // Add paths from the icon component
     IconComponent.forEach(pathData => {
-      if (pathData && pathData[0] === 'path') {
+      const type = pathData && pathData[0];
+      const attrs = pathData[1] || {};
+      if (type === 'path') {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', pathData[1].d || '');
+        if (attrs.d) path.setAttribute('d', attrs.d);
         svg.appendChild(path);
-      } else if (pathData && pathData[0] === 'circle') {
+      } else if (type === 'circle') {
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', pathData[1].cx || '');
-        circle.setAttribute('cy', pathData[1].cy || '');
-        circle.setAttribute('r', pathData[1].r || '');
+        if (attrs.cx) circle.setAttribute('cx', attrs.cx);
+        if (attrs.cy) circle.setAttribute('cy', attrs.cy);
+        if (attrs.r) circle.setAttribute('r', attrs.r);
         svg.appendChild(circle);
-      } else if (pathData && pathData[0] === 'line') {
+      } else if (type === 'line') {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', pathData[1].x1 || '');
-        line.setAttribute('y1', pathData[1].y1 || '');
-        line.setAttribute('x2', pathData[1].x2 || '');
-        line.setAttribute('y2', pathData[1].y2 || '');
+        if (attrs.x1) line.setAttribute('x1', attrs.x1);
+        if (attrs.y1) line.setAttribute('y1', attrs.y1);
+        if (attrs.x2) line.setAttribute('x2', attrs.x2);
+        if (attrs.y2) line.setAttribute('y2', attrs.y2);
         svg.appendChild(line);
+      } else if (type === 'rect') {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        Object.keys(attrs).forEach(k => rect.setAttribute(k, attrs[k]));
+        svg.appendChild(rect);
+      } else {
+        // Generic fallback: try to create element from type name
+        try {
+          const el = document.createElementNS('http://www.w3.org/2000/svg', type);
+          Object.keys(attrs).forEach(k => el.setAttribute(k, attrs[k]));
+          svg.appendChild(el);
+        } catch (e) {
+          // ignore unknown
+        }
       }
     });
 
     if (options.className) {
       svg.setAttribute('class', options.className);
     }
-
-    if (options.style) {
+    if (options.style && typeof options.style === 'object') {
       Object.assign(svg.style, options.style);
     }
 
     return svg;
+  }
+
+  // Returns SVG outerHTML for modules that want string HTML
+  createIconHTML(iconName, options = {}) {
+    const el = this.createIcon(iconName, options);
+    return el ? el.outerHTML : '';
   }
 
   // Security utility to escape HTML
@@ -198,17 +211,18 @@ class HTMLChatApp {
     elementsWithIcons.forEach(element => {
       const iconName = element.getAttribute('data-lucide');
       const existingStyles = {
-        width: element.style.width || '16px',
-        height: element.style.height || '16px'
+        width: element.style.width || element.getAttribute('style')?.match(/width:\s*([^;]+)/)?.[1] || '16px',
+        height: element.style.height || element.getAttribute('style')?.match(/height:\s*([^;]+)/)?.[1] || '16px'
       };
 
+      const size = parseInt(existingStyles.width) || 16;
       const iconElement = this.createIcon(iconName, {
-        size: parseInt(existingStyles.width) || 16,
+        size,
         className: element.className,
-        style: existingStyles
+        style: { width: existingStyles.width, height: existingStyles.height }
       });
 
-      if (iconElement) {
+      if (iconElement && element.parentNode) {
         element.parentNode.replaceChild(iconElement, element);
       }
     });
@@ -302,9 +316,18 @@ class HTMLChatApp {
       this.setupEventListeners();
 
       // Initialize managers
+      this.soundManager = new SoundManager();
+      this.messageRenderer = new MessageRenderer(this);
+      this.pmManager = new PrivateMessageManager(this);
+      this.fileManager = new FileUploadManager(this);
+      this.searchManager = new SearchManager(this);
+      this.notificationManager = new NotificationManager(this);
+      this.contextMenu = new ContextMenuManager(this);
+      this.modTools = new ModeratorTools(this);
+
       await this.notificationManager.init();
 
-      // Initialize Lucide icons (npm module)
+      // Initialize Lucide icons (via app helper). This will replace <i data-lucide="..."> nodes.
       this.initializeIcons();
 
       // Set initial sound toggle state
@@ -315,9 +338,6 @@ class HTMLChatApp {
       setTimeout(() => {
         const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
         const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
-
-        console.log("Initial sound state:", soundsEnabled); // Debug
-        console.log("Initial icons found:", { soundOnIcon, soundOffIcon }); // Debug
 
         if (soundsEnabled) {
           if (soundOnIcon) {
@@ -576,13 +596,6 @@ class HTMLChatApp {
     if (this.user && this.user.toLowerCase() === 'nellowtcs' && this.authToken) {
       headers['X-Auth-Token'] = this.authToken;
       headers['X-Auth-User'] = this.user;
-      console.log('Adding auth headers:', { user: this.user, hasToken: !!this.authToken, includeContentType });
-    } else {
-      console.log('No auth headers added:', {
-        user: this.user,
-        isNellowTCS: this.user && this.user.toLowerCase() === 'nellowtcs',
-        hasToken: !!this.authToken
-      });
     }
 
     return headers;
@@ -610,21 +623,11 @@ class HTMLChatApp {
       const url = `${this.baseURL}/chat/${this.elements.roomSelect.value}`;
       const headers = this.getAuthHeaders(false); // No Content-Type for GET requests
 
-      console.log('Fetching messages:', { url, headers });
-
       const res = await fetch(url, { headers });
-
-      console.log('Fetch response:', {
-        ok: res.ok,
-        status: res.status,
-        statusText: res.statusText,
-        headers: Object.fromEntries(res.headers.entries())
-      });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
-      console.log("Received data:", data);
 
       const messages = data.messages || [];
       const users = data.users || [];
@@ -633,7 +636,6 @@ class HTMLChatApp {
       // Store server's moderator status for current user
       if (typeof data.isModerator === 'boolean') {
         this.serverIsModerator = data.isModerator;
-        console.log('Server moderator status:', this.serverIsModerator);
       }
 
       // Check for new messages for notifications and update stored message IDs
@@ -680,24 +682,10 @@ class HTMLChatApp {
       this.updateStatus(true);
     } catch (e) {
       console.error("Fetch failed:", e);
-      console.error("Error details:", {
-        name: e.name,
-        message: e.message,
-        stack: e.stack,
-        cause: e.cause
-      });
-
-      // Check if it's a network error vs server error
-      if (e.message.includes('Failed to fetch')) {
-        console.error('Network error - possible CORS or connectivity issue');
-        console.error('Current URL:', `${this.baseURL}/chat/${this.elements.roomSelect.value}`);
-        console.error('Expected Worker URL format: https://your-worker.your-subdomain.workers.dev');
-      }
 
       this.updateStatus(false);
 
       if (this.elements.chatBox.innerHTML === "") {
-        // Create system error message safely
         const errorDiv = document.createElement('div');
         errorDiv.className = 'msg system';
 
@@ -905,13 +893,9 @@ class HTMLChatApp {
     const isEnabled = this.soundManager.toggleSounds();
     const soundToggle = this.elements.soundToggle;
 
-    console.log("Sound toggle clicked, enabled:", isEnabled); // Debug
-
     // Update icons 
     const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
     const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
-
-    console.log("Found icons:", { soundOnIcon, soundOffIcon }); // Debug
 
     if (isEnabled) {
       if (soundOnIcon) {
@@ -923,7 +907,6 @@ class HTMLChatApp {
         soundOffIcon.style.visibility = "hidden";
       }
       soundToggle.classList.remove("muted");
-      console.log("Showing sound ON icon"); // Debug
     } else {
       if (soundOnIcon) {
         soundOnIcon.style.display = "none";
@@ -934,7 +917,6 @@ class HTMLChatApp {
         soundOffIcon.style.visibility = "visible";
       }
       soundToggle.classList.add("muted");
-      console.log("Showing sound OFF icon"); // Debug
     }
   }
 }
