@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>HTMLChat</title>
-  <script type="module" crossorigin src="./assets/index-Dk5vU3I_.js"></script>
+  <script type="module" crossorigin src="./assets/index-BGQvhRh0.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-sefA4SGX.css">
 <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script>
 <meta name="theme-color" content="#00bfff">
@@ -263,7 +263,19 @@
   <!-- JavaScript -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>
-    eruda.init();
+    // Guard eruda initialization so missing CDN won't throw
+    (function() {
+      try {
+        if (window.eruda && typeof window.eruda.init === 'function') {
+          window.eruda.init();
+        } else {
+          // eruda didn't load or not available - silently continue
+          console.debug('eruda not available or blocked - skipping debug console init');
+        }
+      } catch (e) {
+        console.warn('eruda.init() failed:', e);
+      }
+    })();
   </script>
 </body>
 
