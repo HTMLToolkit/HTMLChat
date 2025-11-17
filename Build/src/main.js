@@ -1,5 +1,9 @@
 // Import modules
-import * as lucide from 'lucide';
+import { SoundManager } from "./soundManager.js";
+import {
+  Volume2, VolumeX, Search, Reply, Trash2, Mail, UserX, Ban, X,
+  Folder, Paperclip, Bell, Image, Music, FileText, Settings
+} from 'lucide';
 import { MessageRenderer } from "./messageRenderer.js";
 import { PrivateMessageManager } from "./privateMessages.js";
 import { FileUploadManager } from "./fileUpload.js";
@@ -7,7 +11,6 @@ import { SearchManager } from "./search.js";
 import { NotificationManager } from "./notifications.js";
 import { ContextMenuManager } from "./contextMenu.js";
 import { ModeratorTools } from "./moderatorTools.js";
-import { SoundManager } from "./soundManager.js";
 
 // WebCrypto-based encrypt/decrypt helpers for sensitive values
 async function getKeyFromPassphrase(passphrase, salt) {
@@ -65,14 +68,6 @@ async function decryptData(data_b64, passphrase) {
   return new TextDecoder().decode(decrypted);
 }
 
-// Utility: convert lucide icon name (e.g. 'trash-2' or 'file-text') => PascalCase export name ('Trash2', 'FileText')
-function toPascal(iconName) {
-  return iconName
-    .split(/[-_]/)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-    .join('');
-}
-
 // Global app state
 class HTMLChatApp {
   constructor() {
@@ -86,13 +81,27 @@ class HTMLChatApp {
     this.lastFetchTime = 0;
     this.currentReplyTo = null;
 
-    // lucide module reference (imported above)
-    this.lucideModule = lucide;
+    // Icon mappings for lucide
+    this.icons = {
+      'volume-2': Volume2,
+      'volume-x': VolumeX,
+      'search': Search,
+      'reply': Reply,
+      'trash-2': Trash2,
+      'mail': Mail,
+      'user-x': UserX,
+      'ban': Ban,
+      'x': X,
+      'folder': Folder,
+      'paperclip': Paperclip,
+      'bell': Bell,
+      'image': Image,
+      'music': Music,
+      'file-text': FileText,
+      'settings': Settings
+    };
 
-    // Icon cache (name -> lucide icon definition)
-    this.icons = {};
-
-    // Initialize managers placeholders
+    // Initialize managers to null (will be created in init)
     this.soundManager = null;
     this.messageRenderer = null;
     this.pmManager = null;
@@ -105,7 +114,7 @@ class HTMLChatApp {
     // Server-side moderator status (authoritative)
     this.serverIsModerator = false;
 
-    // DOM elements (grabbed after DOM exists)
+    // DOM elements
     this.elements = {
       roomSelect: document.getElementById("room-select"),
       welcomeDiv: document.getElementById("welcome"),
@@ -120,21 +129,18 @@ class HTMLChatApp {
     this.init();
   }
 
-  // Helper: create an SVG Element for an iconName using lucide exports.
+  // Helper method to create lucide icons
   createIcon(iconName, options = {}) {
-    const pascal = toPascal(iconName);
-    // Try provided cache first
-    let IconComponent = this.icons[iconName] || this.lucideModule[pascal];
-
+    const IconComponent = this.icons[iconName];
     if (!IconComponent) {
-      console.warn(`Lucide icon "${iconName}" not found as "${pascal}".`);
+      console.warn(`Icon "${iconName}" not found`);
       return null;
     }
 
-    const size = options.size || parseInt(options.size) || 16;
+    const size = options.size || 16;
     const strokeWidth = options.strokeWidth || 2;
 
-    // Build an SVG element from the lucide icon definition (which is an array of tuples)
+    // Create SVG element
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('width', size);
     svg.setAttribute('height', size);
@@ -145,56 +151,37 @@ class HTMLChatApp {
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
 
+    // Add paths from the icon component
     IconComponent.forEach(pathData => {
-      const type = pathData && pathData[0];
-      const attrs = pathData[1] || {};
-      if (type === 'path') {
+      if (pathData && pathData[0] === 'path') {
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        if (attrs.d) path.setAttribute('d', attrs.d);
+        path.setAttribute('d', pathData[1].d || '');
         svg.appendChild(path);
-      } else if (type === 'circle') {
+      } else if (pathData && pathData[0] === 'circle') {
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        if (attrs.cx) circle.setAttribute('cx', attrs.cx);
-        if (attrs.cy) circle.setAttribute('cy', attrs.cy);
-        if (attrs.r) circle.setAttribute('r', attrs.r);
+        circle.setAttribute('cx', pathData[1].cx || '');
+        circle.setAttribute('cy', pathData[1].cy || '');
+        circle.setAttribute('r', pathData[1].r || '');
         svg.appendChild(circle);
-      } else if (type === 'line') {
+      } else if (pathData && pathData[0] === 'line') {
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        if (attrs.x1) line.setAttribute('x1', attrs.x1);
-        if (attrs.y1) line.setAttribute('y1', attrs.y1);
-        if (attrs.x2) line.setAttribute('x2', attrs.x2);
-        if (attrs.y2) line.setAttribute('y2', attrs.y2);
+        line.setAttribute('x1', pathData[1].x1 || '');
+        line.setAttribute('y1', pathData[1].y1 || '');
+        line.setAttribute('x2', pathData[1].x2 || '');
+        line.setAttribute('y2', pathData[1].y2 || '');
         svg.appendChild(line);
-      } else if (type === 'rect') {
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        Object.keys(attrs).forEach(k => rect.setAttribute(k, attrs[k]));
-        svg.appendChild(rect);
-      } else {
-        // Generic fallback: try to create element from type name
-        try {
-          const el = document.createElementNS('http://www.w3.org/2000/svg', type);
-          Object.keys(attrs).forEach(k => el.setAttribute(k, attrs[k]));
-          svg.appendChild(el);
-        } catch (e) {
-          // ignore unknown
-        }
       }
     });
 
     if (options.className) {
       svg.setAttribute('class', options.className);
     }
-    if (options.style && typeof options.style === 'object') {
+
+    if (options.style) {
       Object.assign(svg.style, options.style);
     }
 
     return svg;
-  }
-
-  // Returns SVG outerHTML for modules that want string HTML
-  createIconHTML(iconName, options = {}) {
-    const el = this.createIcon(iconName, options);
-    return el ? el.outerHTML : '';
   }
 
   // Security utility to escape HTML
@@ -211,18 +198,17 @@ class HTMLChatApp {
     elementsWithIcons.forEach(element => {
       const iconName = element.getAttribute('data-lucide');
       const existingStyles = {
-        width: element.style.width || element.getAttribute('style')?.match(/width:\s*([^;]+)/)?.[1] || '16px',
-        height: element.style.height || element.getAttribute('style')?.match(/height:\s*([^;]+)/)?.[1] || '16px'
+        width: element.style.width || '16px',
+        height: element.style.height || '16px'
       };
 
-      const size = parseInt(existingStyles.width) || 16;
       const iconElement = this.createIcon(iconName, {
-        size,
+        size: parseInt(existingStyles.width) || 16,
         className: element.className,
-        style: { width: existingStyles.width, height: existingStyles.height }
+        style: existingStyles
       });
 
-      if (iconElement && element.parentNode) {
+      if (iconElement) {
         element.parentNode.replaceChild(iconElement, element);
       }
     });
@@ -273,6 +259,7 @@ class HTMLChatApp {
     this.authToken = null;
     this._authPassphrase = null;
 
+    // Only prompt if no stored user; otherwise keep stored username.
     if (!this.user) {
       do {
         this.user = prompt("Enter your nickname:") || "";
@@ -291,102 +278,112 @@ class HTMLChatApp {
           this.authToken = pw;
           await this.saveToStorage("htmlchat_auth_token", this.authToken, this._authPassphrase);
         }
-      } else if (this.user.toLowerCase() === 'nellowtcs') {
-        // Try to load existing moderator token
-        let passphrase = prompt("Enter passphrase to unlock moderator password:");
-        this._authPassphrase = passphrase;
-        if (passphrase) {
-          this.authToken = await this.loadFromStorage("htmlchat_auth_token", passphrase);
-          // Fallback: If not found or passphrase fails, allow prompt for token (+store new encrypted)
-          if (!this.authToken) {
-            let pw = prompt("Enter moderator password:");
-            if (pw) {
-              this.authToken = pw;
-              await this.saveToStorage("htmlchat_auth_token", pw, passphrase);
-            }
+      }
+    } else {
+      // If stored user is nellowtcs, attempt to load auth token if passphrase is available
+      if (this.user.toLowerCase() === 'nellowtcs') {
+        // Try to load existing moderator token (non-blocking)
+        try {
+          const passphrase = prompt("Enter passphrase to unlock moderator password (or leave blank):");
+          this._authPassphrase = passphrase || null;
+          if (passphrase) {
+            this.authToken = await this.loadFromStorage("htmlchat_auth_token", passphrase);
           }
+        } catch (e) {
+          // ignore
         }
       }
-
-      // Set up room
-      const savedRoom = this.loadFromStorage("htmlchat_room") || "default";
-      this.elements.roomSelect.value = savedRoom;
-
-      this.updateWelcome();
-      this.setupEventListeners();
-
-      // Initialize managers
-      this.soundManager = new SoundManager();
-      this.messageRenderer = new MessageRenderer(this);
-      this.pmManager = new PrivateMessageManager(this);
-      this.fileManager = new FileUploadManager(this);
-      this.searchManager = new SearchManager(this);
-      this.notificationManager = new NotificationManager(this);
-      this.contextMenu = new ContextMenuManager(this);
-      this.modTools = new ModeratorTools(this);
-
-      await this.notificationManager.init();
-
-      // Initialize Lucide icons (via app helper). This will replace <i data-lucide="..."> nodes.
-      this.initializeIcons();
-
-      // Set initial sound toggle state
-      const soundsEnabled = this.soundManager.isSoundEnabled();
-      const soundToggle = this.elements.soundToggle;
-
-      // Wait a bit for icons to initialize, then set the state
-      setTimeout(() => {
-        const soundOnIcon = soundToggle.querySelector('.sound-on-icon');
-        const soundOffIcon = soundToggle.querySelector('.sound-off-icon');
-
-        if (soundsEnabled) {
-          if (soundOnIcon) {
-            soundOnIcon.style.display = "inline";
-            soundOnIcon.style.visibility = "visible";
-          }
-          if (soundOffIcon) {
-            soundOffIcon.style.display = "none";
-            soundOffIcon.style.visibility = "hidden";
-          }
-          soundToggle.classList.remove("muted");
-        } else {
-          if (soundOnIcon) {
-            soundOnIcon.style.display = "none";
-            soundOnIcon.style.visibility = "hidden";
-          }
-          if (soundOffIcon) {
-            soundOffIcon.style.display = "inline";
-            soundOffIcon.style.visibility = "visible";
-          }
-          soundToggle.classList.add("muted");
-        }
-      }, 100); // Small delay to ensure Lucide has initialized
-
-      // Start the app
-      await this.fetchMessages(true);
-      this.scheduleNextRefresh(15000);
-      this.elements.input.focus();
-
-      // Set up activity tracking and heartbeat
-      this.setupActivityTracking();
-      setTimeout(() => this.scheduleHeartbeat(), 60000);
     }
+
+    // Set up room (always)
+    const savedRoom = (await this.loadFromStorage("htmlchat_room")) || "default";
+    if (this.elements.roomSelect) this.elements.roomSelect.value = savedRoom;
+
+    this.updateWelcome();
+    this.setupEventListeners();
+
+    // Initialize managers (always)
+    this.soundManager = new SoundManager();
+    this.messageRenderer = new MessageRenderer(this);
+    this.pmManager = new PrivateMessageManager(this);
+    this.fileManager = new FileUploadManager(this);
+    this.searchManager = new SearchManager(this);
+    this.notificationManager = new NotificationManager(this);
+    this.contextMenu = new ContextMenuManager(this);
+    this.modTools = new ModeratorTools(this);
+
+    // Initialize notification manager (it checks Notification API)
+    await this.notificationManager.init();
+
+    // Initialize Lucide icons (npm module)
+    this.initializeIcons();
+
+    // Set initial sound toggle state
+    const soundsEnabled = this.soundManager.isSoundEnabled();
+    const soundToggle = this.elements.soundToggle;
+
+    // Wait a bit for icons to initialize, then set the state
+    setTimeout(() => {
+      const soundOnIcon = soundToggle && soundToggle.querySelector('.sound-on-icon');
+      const soundOffIcon = soundToggle && soundToggle.querySelector('.sound-off-icon');
+
+      if (soundsEnabled) {
+        if (soundOnIcon) {
+          soundOnIcon.style.display = "inline";
+          soundOnIcon.style.visibility = "visible";
+        }
+        if (soundOffIcon) {
+          soundOffIcon.style.display = "none";
+          soundOffIcon.style.visibility = "hidden";
+        }
+        soundToggle && soundToggle.classList.remove("muted");
+      } else {
+        if (soundOnIcon) {
+          soundOnIcon.style.display = "none";
+          soundOnIcon.style.visibility = "hidden";
+        }
+        if (soundOffIcon) {
+          soundOffIcon.style.display = "inline";
+          soundOffIcon.style.visibility = "visible";
+        }
+        soundToggle && soundToggle.classList.add("muted");
+      }
+    }, 100); // Small delay to ensure Lucide has initialized
+
+    // Start the app
+    try {
+      await this.fetchMessages(true);
+    } catch (e) {
+      console.warn('Initial fetchMessages failed:', e);
+    }
+    this.scheduleNextRefresh(15000);
+    this.elements.input && this.elements.input.focus();
+
+    // Set up activity tracking and heartbeat
+    this.setupActivityTracking();
+    setTimeout(() => this.scheduleHeartbeat(), 60000);
   }
 
   setupEventListeners() {
     // Send message events
-    this.elements.sendBtn.addEventListener("click", () => this.sendMessage());
-    this.elements.input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        this.sendMessage();
-      }
-    });
+    if (this.elements.sendBtn) {
+      this.elements.sendBtn.addEventListener("click", () => this.sendMessage());
+    }
+    if (this.elements.input) {
+      this.elements.input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          this.sendMessage();
+        }
+      });
+    }
 
     // Room change
-    this.elements.roomSelect.addEventListener("change", () =>
-      this.changeRoom()
-    );
+    if (this.elements.roomSelect) {
+      this.elements.roomSelect.addEventListener("change", () =>
+        this.changeRoom()
+      );
+    }
 
     // Page visibility
     document.addEventListener("visibilitychange", () => {
@@ -418,7 +415,7 @@ class HTMLChatApp {
         document.activeElement !== this.elements.input &&
         e.target.tagName !== "BUTTON"
       ) {
-        this.elements.input.focus();
+        this.elements.input && this.elements.input.focus();
       }
     });
 
@@ -426,9 +423,11 @@ class HTMLChatApp {
     window.addEventListener("beforeunload", () => this.leaveRoom());
 
     // Sound toggle
-    this.elements.soundToggle.addEventListener("click", () =>
-      this.toggleSounds()
-    );
+    if (this.elements.soundToggle) {
+      this.elements.soundToggle.addEventListener("click", () =>
+        this.toggleSounds()
+      );
+    }
   }
 
   setupActivityTracking() {
@@ -446,6 +445,7 @@ class HTMLChatApp {
 
   attachMessageEventListeners() {
     // Add context menu event listeners for messages
+    if (!this.elements.chatBox) return;
     const messages = this.elements.chatBox.querySelectorAll('.msg');
     messages.forEach(msgEl => {
       msgEl.addEventListener('contextmenu', (e) => {
@@ -498,16 +498,17 @@ class HTMLChatApp {
   }
 
   updateWelcome() {
+    if (!this.elements.welcomeDiv) return;
     // Clear existing content
     this.elements.welcomeDiv.innerHTML = '';
 
     // Create text node with safe content
     const welcomeText = document.createTextNode('Welcome to HTMLChat, ');
     const userBold = document.createElement('b');
-    userBold.textContent = this.user;
+    userBold.textContent = this.user || 'Guest';
     const middleText = document.createTextNode('! You are now in room ');
     const roomBold = document.createElement('b');
-    roomBold.textContent = this.elements.roomSelect.value;
+    roomBold.textContent = this.elements.roomSelect ? this.elements.roomSelect.value : 'default';
     const endText = document.createTextNode('.');
 
     // Append all elements
@@ -563,7 +564,7 @@ class HTMLChatApp {
       this.elements.usersDiv.appendChild(fragment);
     } else {
       // Fallback to fake users
-      const fakeUsers = [this.user, "ChatBot", "Guest123"];
+      const fakeUsers = [this.user || 'Guest', "ChatBot", "Guest123"];
       document.getElementById("user-count").textContent = fakeUsers.length;
 
       // Create a document fragment for efficient DOM manipulation
@@ -596,6 +597,13 @@ class HTMLChatApp {
     if (this.user && this.user.toLowerCase() === 'nellowtcs' && this.authToken) {
       headers['X-Auth-Token'] = this.authToken;
       headers['X-Auth-User'] = this.user;
+      console.log('Adding auth headers:', { user: this.user, hasToken: !!this.authToken, includeContentType });
+    } else {
+      console.log('No auth headers added:', {
+        user: this.user,
+        isNellowTCS: this.user && this.user.toLowerCase() === 'nellowtcs',
+        hasToken: !!this.authToken
+      });
     }
 
     return headers;
@@ -611,7 +619,7 @@ class HTMLChatApp {
         const cached = this.loadFromStorage(
           `htmlchat_${this.elements.roomSelect.value}`
         );
-        if (cached && Array.isArray(cached)) {
+        if (cached && Array.isArray(cached) && this.messageRenderer) {
           this.elements.chatBox.innerHTML =
             this.messageRenderer.renderMessages(cached);
           this.scrollToBottom();
@@ -623,11 +631,21 @@ class HTMLChatApp {
       const url = `${this.baseURL}/chat/${this.elements.roomSelect.value}`;
       const headers = this.getAuthHeaders(false); // No Content-Type for GET requests
 
+      console.log('Fetching messages:', { url, headers });
+
       const res = await fetch(url, { headers });
+
+      console.log('Fetch response:', {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        headers: Object.fromEntries(res.headers.entries())
+      });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
 
       const data = await res.json();
+      console.log("Received data:", data);
 
       const messages = data.messages || [];
       const users = data.users || [];
@@ -636,6 +654,7 @@ class HTMLChatApp {
       // Store server's moderator status for current user
       if (typeof data.isModerator === 'boolean') {
         this.serverIsModerator = data.isModerator;
+        console.log('Server moderator status:', this.serverIsModerator);
       }
 
       // Check for new messages for notifications and update stored message IDs
@@ -662,8 +681,13 @@ class HTMLChatApp {
       );
 
       // Store messages with proper IDs for deletion
-      this.elements.chatBox.innerHTML =
-        this.messageRenderer.renderMessages(messages);
+      if (this.messageRenderer) {
+        this.elements.chatBox.innerHTML =
+          this.messageRenderer.renderMessages(messages);
+      } else {
+        // graceful fallback
+        this.elements.chatBox.innerHTML = '<div class="msg system"><span class="time">[--:--]</span><span class="user">*** System ***</span><span class="text">Messages loaded (renderer missing)</span></div>';
+      }
       this.scrollToBottom();
 
       // Re-initialize Lucide icons for new messages
@@ -682,10 +706,23 @@ class HTMLChatApp {
       this.updateStatus(true);
     } catch (e) {
       console.error("Fetch failed:", e);
+      console.error("Error details:", {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+        cause: e.cause
+      });
+
+      // Check if it's a network error vs server error
+      if (e.message && e.message.includes('Failed to fetch')) {
+        console.error('Network error - possible CORS or connectivity issue');
+        console.error('Current URL:', `${this.baseURL}/chat/${this.elements.roomSelect.value}`);
+      }
 
       this.updateStatus(false);
 
       if (this.elements.chatBox.innerHTML === "") {
+        // Create system error message safely
         const errorDiv = document.createElement('div');
         errorDiv.className = 'msg system';
 
@@ -758,7 +795,7 @@ class HTMLChatApp {
     } catch (e) {
       console.error("Send failed:", e);
 
-      if (e.message.includes("403")) {
+      if (e.message && e.message.includes("403")) {
         alert("Message blocked: " + e.message.split(": ")[1]);
       } else {
         alert("Message failed to send. Please try again.");

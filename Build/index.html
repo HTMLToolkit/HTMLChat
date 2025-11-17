@@ -259,7 +259,19 @@
   <!-- JavaScript -->
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>
-    eruda.init();
+    // Guard eruda initialization so missing CDN won't throw
+    (function() {
+      try {
+        if (window.eruda && typeof window.eruda.init === 'function') {
+          window.eruda.init();
+        } else {
+          // eruda didn't load or not available - silently continue
+          console.debug('eruda not available or blocked - skipping debug console init');
+        }
+      } catch (e) {
+        console.warn('eruda.init() failed:', e);
+      }
+    })();
   </script>
   <script type="module" src="src/main.js"></script>
 </body>
