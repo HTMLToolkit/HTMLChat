@@ -56,7 +56,19 @@ class HTMLChatApp {
     const nodes = document.querySelectorAll('[data-lucide]');
     for (const node of nodes) {
       const iconName = node.getAttribute('data-lucide');
-      const svgHTML = createIconHTML(iconName, { size: node.getAttribute('width') || 16 });
+      // Gather all classes except 'context-icon' (which may be replaced anyway)
+      let classes = node.className ? node.className.split(' ') : [];
+      // Always add 'context-icon' if present
+      const classString = classes.join(' ').trim();
+      // Inline styles (including display:none, inline widths, etc)
+      const styleString = node.getAttribute('style') || '';
+      const width = node.getAttribute('width') || 16;
+  
+      const svgHTML = createIconHTML(iconName, {
+        size: width,
+        class: classString,
+        style: styleString
+      });
       node.outerHTML = svgHTML;
     }
   }

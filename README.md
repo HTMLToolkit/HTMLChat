@@ -5,7 +5,7 @@
 [![GitHub Pages Build](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml/badge.svg)](https://github.com/HTMLToolkit/HTMLChat/actions/workflows/static.yml) 
 
 A retro-styled, browser-only chat client.  
-Version: **v0.2.0-beta**
+Version: **v0.3.0-beta**
 
 ## What this is  
 

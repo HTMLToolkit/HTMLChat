@@ -13,9 +13,6 @@ body {
 }
 
 .container {
-  width: 90%;
-  max-width: 1600px;
-  margin: 20px auto;
   background: #fff;
   border: 2px solid #ccc;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.774);
@@ -160,7 +157,7 @@ body {
 
 .main-content {
   display: flex;
-  height: 600px;
+  height: calc(100vh - 180px);
 }
 
 .chat-area {
@@ -797,12 +794,11 @@ body {
 /* Mobile responsiveness */
 @media (max-width: 640px) {
   .container {
-    margin: 10px;
     max-width: none;
   }
   
   .main-content {
-    height: 500px;
+    height: calc(100vh - 180px);
   }
   
   .user-list {
