@@ -34,7 +34,7 @@ export class PrivateMessageManager {
     this.windows.set(username, window);
     this.windowContainer.appendChild(window.element);
     
-    // Load PM history
+    // Load PM history or create it if first time
     this.loadPMHistory(username);
     
     // Focus input
@@ -230,8 +230,8 @@ export class PrivateMessageManager {
   renderPMMessages(username) {
     const window = this.windows.get(username);
     if (!window) return;
-    
-    const html = window.messages.map(msg => {
+    let msgs = Array.isArray(window.messages) ? window.messages : [];
+    const html = msgs.map(msg => {
       const date = new Date(msg.time).toLocaleTimeString([], { 
         hour: '2-digit', 
         minute: '2-digit' 
@@ -257,36 +257,42 @@ export class PrivateMessageManager {
     try {
       // Generate conversation ID (sorted usernames for consistency)
       const conversationId = [this.app.user, username].sort().join('_');
-      
       // Fetch from server - encode conversationId to handle special characters
       const res = await fetch(`${this.app.baseURL}/pm/${encodeURIComponent(conversationId)}?user=${encodeURIComponent(this.app.user)}`, {
         headers: this.app.getAuthHeaders(false) // No Content-Type for GET requests
       });
-      
+      const window = this.windows.get(username);
+
+      if (res.status === 404) {
+        // First time PM; show empty convo (don't treat as error)
+        if (window) {
+          window.messages = [];
+          this.renderPMMessages(username);
+        }
+        return;
+      }
       if (res.ok) {
-        const data = await res.json();
-        const window = this.windows.get(username);
+        let data = await res.json();
+        if (!Array.isArray(data.messages)) data.messages = [];
         if (window) {
-          window.messages = data.messages || [];
+          window.messages = data.messages;
           this.renderPMMessages(username);
         }
-      } else {
-        console.warn('Failed to load PM history:', res.status);
-        // Fallback to local storage
-        const history = this.app.loadFromStorage(`pm_history_${username}`) || [];
-        const window = this.windows.get(username);
-        if (window) {
-          window.messages = history;
-          this.renderPMMessages(username);
-        }
+        return;
+      }
+
+      // Non-404 errors, fallback to local storage or show as empty
+      const history = await this.app.loadFromStorage(`pm_history_${username}`) || [];
+      if (window) {
+        window.messages = Array.isArray(history) ? history : [];
+        this.renderPMMessages(username);
       }
     } catch(e) {
       console.warn('Failed to load PM history:', e);
-      // Fallback to local storage
-      const history = this.app.loadFromStorage(`pm_history_${username}`) || [];
       const window = this.windows.get(username);
+      const history = await this.app.loadFromStorage(`pm_history_${username}`) || [];
       if (window) {
-        window.messages = history;
+        window.messages = Array.isArray(history) ? history : [];
         this.renderPMMessages(username);
       }
     }
