@@ -1,9 +1,5 @@
 // Import modules
 import { SoundManager } from "./soundManager.js";
-import {
-  Volume2, VolumeX, Search, Reply, Trash2, Mail, UserX, Ban, X,
-  Folder, Paperclip, Bell, Image, Music, FileText, Settings
-} from 'lucide';
 import { MessageRenderer } from "./messageRenderer.js";
 import { PrivateMessageManager } from "./privateMessages.js";
 import { FileUploadManager } from "./fileUpload.js";
@@ -11,62 +7,8 @@ import { SearchManager } from "./search.js";
 import { NotificationManager } from "./notifications.js";
 import { ContextMenuManager } from "./contextMenu.js";
 import { ModeratorTools } from "./moderatorTools.js";
-
-// WebCrypto-based encrypt/decrypt helpers for sensitive values
-async function getKeyFromPassphrase(passphrase, salt) {
-  const encoder = new TextEncoder();
-  const keyMaterial = await window.crypto.subtle.importKey(
-    "raw",
-    encoder.encode(passphrase),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  );
-  return window.crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      salt: salt,
-      iterations: 50000,
-      hash: "SHA-256"
-    },
-    keyMaterial,
-    { name: "AES-GCM", length: 256 },
-    false,
-    ["encrypt", "decrypt"]
-  );
-}
-
-async function encryptData(plain, passphrase) {
-  const encoder = new TextEncoder();
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const salt = window.crypto.getRandomValues(new Uint8Array(16));
-  const key = await getKeyFromPassphrase(passphrase, salt);
-  const ciphertext = await window.crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    encoder.encode(plain)
-  );
-  // Return salt + iv + ciphertext as Base64
-  const dataBuffer = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
-  dataBuffer.set(salt, 0);
-  dataBuffer.set(iv, salt.length);
-  dataBuffer.set(new Uint8Array(ciphertext), salt.length + iv.length);
-  return btoa(String.fromCharCode.apply(null, dataBuffer));
-}
-
-async function decryptData(data_b64, passphrase) {
-  const raw = Uint8Array.from(atob(data_b64), c => c.charCodeAt(0));
-  const salt = raw.slice(0, 16);
-  const iv = raw.slice(16, 28);
-  const ciphertext = raw.slice(28);
-  const key = await getKeyFromPassphrase(passphrase, salt);
-  const decrypted = await window.crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    ciphertext
-  );
-  return new TextDecoder().decode(decrypted);
-}
+import { createIconHTML } from "./iconHelper.js"
+import { getKeyFromPassphrase, encryptData, decryptData } from "./securityHelper.js";
 
 // Global app state
 class HTMLChatApp {
@@ -80,26 +22,6 @@ class HTMLChatApp {
     this.lastMessageTime = 0;
     this.lastFetchTime = 0;
     this.currentReplyTo = null;
-
-    // Icon mappings for lucide
-    this.icons = {
-      'volume-2': Volume2,
-      'volume-x': VolumeX,
-      'search': Search,
-      'reply': Reply,
-      'trash-2': Trash2,
-      'mail': Mail,
-      'user-x': UserX,
-      'ban': Ban,
-      'x': X,
-      'folder': Folder,
-      'paperclip': Paperclip,
-      'bell': Bell,
-      'image': Image,
-      'music': Music,
-      'file-text': FileText,
-      'settings': Settings
-    };
 
     // Initialize managers to null (will be created in init)
     this.soundManager = null;
@@ -129,89 +51,14 @@ class HTMLChatApp {
     this.init();
   }
 
-  // Helper method to create lucide icons
-  createIcon(iconName, options = {}) {
-    const IconComponent = this.icons[iconName];
-    if (!IconComponent) {
-      console.warn(`Icon "${iconName}" not found`);
-      return null;
-    }
-
-    const size = options.size || 16;
-    const strokeWidth = options.strokeWidth || 2;
-
-    // Create SVG element
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', size);
-    svg.setAttribute('height', size);
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('fill', 'none');
-    svg.setAttribute('stroke', 'currentColor');
-    svg.setAttribute('stroke-width', strokeWidth);
-    svg.setAttribute('stroke-linecap', 'round');
-    svg.setAttribute('stroke-linejoin', 'round');
-
-    // Add paths from the icon component
-    IconComponent.forEach(pathData => {
-      if (pathData && pathData[0] === 'path') {
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', pathData[1].d || '');
-        svg.appendChild(path);
-      } else if (pathData && pathData[0] === 'circle') {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', pathData[1].cx || '');
-        circle.setAttribute('cy', pathData[1].cy || '');
-        circle.setAttribute('r', pathData[1].r || '');
-        svg.appendChild(circle);
-      } else if (pathData && pathData[0] === 'line') {
-        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', pathData[1].x1 || '');
-        line.setAttribute('y1', pathData[1].y1 || '');
-        line.setAttribute('x2', pathData[1].x2 || '');
-        line.setAttribute('y2', pathData[1].y2 || '');
-        svg.appendChild(line);
-      }
-    });
-
-    if (options.className) {
-      svg.setAttribute('class', options.className);
-    }
-
-    if (options.style) {
-      Object.assign(svg.style, options.style);
-    }
-
-    return svg;
-  }
-
-  // Security utility to escape HTML
-  escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
   // Initialize all icons in the DOM
   initializeIcons() {
-    // Find all elements with data-lucide attributes and replace them
-    const elementsWithIcons = document.querySelectorAll('[data-lucide]');
-    elementsWithIcons.forEach(element => {
-      const iconName = element.getAttribute('data-lucide');
-      const existingStyles = {
-        width: element.style.width || '16px',
-        height: element.style.height || '16px'
-      };
-
-      const iconElement = this.createIcon(iconName, {
-        size: parseInt(existingStyles.width) || 16,
-        className: element.className,
-        style: existingStyles
-      });
-
-      if (iconElement) {
-        element.parentNode.replaceChild(iconElement, element);
-      }
-    });
+    const nodes = document.querySelectorAll('[data-lucide]');
+    for (const node of nodes) {
+      const iconName = node.getAttribute('data-lucide');
+      const svgHTML = createIconHTML(iconName, { size: node.getAttribute('width') || 16 });
+      node.outerHTML = svgHTML;
+    }
   }
 
   // Simple storage helpers

@@ -1,3 +1,5 @@
+import { createIconHTML } from "./iconHelper";
+
 export class PrivateMessageManager {
   constructor(app) {
     this.app = app;
@@ -54,7 +56,7 @@ export class PrivateMessageManager {
     windowElement.style.top = `${100 + offset}px`;
     
     // Create close icon via app helper
-    const closeIconHtml = this.app.createIconHTML('x', { size: 12 });
+    const closeIconHtml = createIconHTML('x', { size: 12 });
 
     // Create header
     const header = document.createElement('div');
