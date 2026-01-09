@@ -132,7 +132,7 @@ class HTMLChatApp {
         let pw = prompt("Enter moderator password:");
         if (pw) {
           // Ask for a passphrase to encrypt the saved token (can use same value for simplicity)
-          let passphrase = prompt("Provide a passphrase to protect your moderator token:", "");
+          let passphrase = prompt("Provide a passphrase to protect your moderator token (or leave blank for less security):", "");
           if (!passphrase) passphrase = pw; // fallback for less friction
           this._authPassphrase = passphrase;
           this.authToken = pw;
@@ -144,7 +144,7 @@ class HTMLChatApp {
       if (this.user.toLowerCase() === 'nellowtcs') {
         // Try to load existing moderator token (non-blocking)
         try {
-          const passphrase = prompt("Enter passphrase to unlock moderator password (or leave blank):");
+          const passphrase = prompt("Enter passphrase to unlock moderator password (or leave blank if you hadn't set one before.):");
           this._authPassphrase = passphrase || null;
           if (passphrase) {
             this.authToken = await this.loadFromStorage("htmlchat_auth_token", passphrase);
