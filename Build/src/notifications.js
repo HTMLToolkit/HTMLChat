@@ -202,7 +202,7 @@ export class NotificationManager {
         
         const defaultOptions = {
           body: body,
-          icon: '/beta/HTMLChat/icon-512x512.png',
+          icon: '/HTMLChat/icon-512x512.png',
           tag: uniqueTag,
           requireInteraction: false,
           silent: !this.playSound
