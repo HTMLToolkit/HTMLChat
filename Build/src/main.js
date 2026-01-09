@@ -63,7 +63,7 @@ class HTMLChatApp {
       // Inline styles (including display:none, inline widths, etc)
       const styleString = node.getAttribute('style') || '';
       const width = node.getAttribute('width') || 16;
-  
+
       const svgHTML = createIconHTML(iconName, {
         size: width,
         class: classString,
@@ -302,13 +302,52 @@ class HTMLChatApp {
     });
   }
 
+  addLongPressListener(target, callback, duration = 500) {
+    let timer = null;
+    let startX = 0, startY = 0;
+
+    target.addEventListener('touchstart', function (e) {
+      if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      timer = setTimeout(() => {
+        // Prevent system context menu (copy/paste/share)
+        e.preventDefault();
+        callback({
+          clientX: startX,
+          clientY: startY,
+          preventDefault: () => e.preventDefault(),
+          originalEvent: e
+        }, target);
+      }, duration);
+    }, { passive: false });
+
+    ['touchend', 'touchmove', 'touchcancel'].forEach(evt => {
+      target.addEventListener(evt, function (e) {
+        clearTimeout(timer);
+        timer = null;
+      });
+    });
+
+    // Block browser's contextmenu (system) on this element on all platforms 
+    // (it does show up if you hold for longer (must mean I'm doing something wrong haha, but not complaining))
+    target.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+    });
+  }
+
   attachMessageEventListeners() {
-    // Add context menu event listeners for messages
     if (!this.elements.chatBox) return;
     const messages = this.elements.chatBox.querySelectorAll('.msg');
     messages.forEach(msgEl => {
+      // Desktop: right-click (we show AND block default)
       msgEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); // Block browser's menu
         this.contextMenu.show(e, msgEl);
+      });
+      // Mobile: long-press (we show AND block default)
+      this.addLongPressListener(msgEl, (touchEvent, el) => {
+        this.contextMenu.show(touchEvent, el);
       });
     });
 
@@ -776,7 +815,7 @@ class HTMLChatApp {
     this.elements.replyPreview.querySelector(
       ".reply-text"
     ).textContent = `${user}: ${text.substring(0, 50)}${text.length > 50 ? "..." : ""
-      }`;
+    }`;
     this.elements.input.focus();
   }
 
