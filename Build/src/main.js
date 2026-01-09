@@ -22,6 +22,7 @@ class HTMLChatApp {
     this.lastMessageTime = 0;
     this.lastFetchTime = 0;
     this.currentReplyTo = null;
+    this.initialLoad = true;
 
     // Initialize managers to null (will be created in init)
     this.soundManager = null;
@@ -556,23 +557,33 @@ class HTMLChatApp {
       }
 
       // Check for new messages for notifications and update stored message IDs
-      const lastMessageCount =
-        this.loadFromStorage(
-          `htmlchat_${this.elements.roomSelect.value}_count`
-        ) || 0;
-      if (
-        messages.length > lastMessageCount &&
-        !this.isVisible &&
-        lastMessageCount > 0
-      ) {
-        const newMessages = messages.slice(lastMessageCount);
-        newMessages.forEach((msg) => {
-          if (msg.user !== this.user) {
-            this.notificationManager.showNotification(msg.user, msg.text);
-            this.soundManager.playSound("message");
-          }
-        });
+      // Load last message time (default 0 for first load)
+      const lastMessageTime = this.loadFromStorage(`htmlchat_${this.elements.roomSelect.value}_last_time`) || 0;
+
+      // Check for new messages after initial load
+      if (!this.initialLoad && messages.length > 0) {
+        const latestTime = Math.max(...messages.map(m => m.time || 0));
+        if (latestTime > lastMessageTime) {
+          // Find and notify for messages newer than lastMessageTime
+          const newMessages = messages.filter(m => (m.time || 0) > lastMessageTime);
+          newMessages.forEach((msg) => {
+            if (msg.user !== this.user) {
+              this.notificationManager.showNotification(msg.user, msg.text);
+              this.soundManager.playSound("message");
+            }
+          });
+        }
       }
+
+      // Update last message time to the latest
+      if (messages.length > 0) {
+        const latestTime = Math.max(...messages.map(m => m.time || 0));
+        this.saveToStorage(`htmlchat_${this.elements.roomSelect.value}_last_time`, latestTime);
+      }
+
+      // Mark as loaded
+      this.initialLoad = false;
+
       this.saveToStorage(
         `htmlchat_${this.elements.roomSelect.value}_count`,
         messages.length
