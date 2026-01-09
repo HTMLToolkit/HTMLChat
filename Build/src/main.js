@@ -331,7 +331,6 @@ class HTMLChatApp {
     });
 
     // Block browser's contextmenu (system) on this element on all platforms 
-    // (it does show up if you hold for longer (must mean I'm doing something wrong haha, but not complaining))
     target.addEventListener('contextmenu', function (e) {
       e.preventDefault();
     });
@@ -514,6 +513,10 @@ class HTMLChatApp {
 
   async fetchMessages(forceRefresh = false) {
     try {
+      // Check for new messages for notifications and update stored message IDs
+      // Load last message time (default 0 for first load)
+      const lastMessageTime = await this.loadFromStorage(`htmlchat_${this.elements.roomSelect.value}_last_time`) || 0;
+
       if (!forceRefresh) {
         const cached = this.loadFromStorage(
           `htmlchat_${this.elements.roomSelect.value}`
@@ -556,10 +559,6 @@ class HTMLChatApp {
         console.log('Server moderator status:', this.serverIsModerator);
       }
 
-      // Check for new messages for notifications and update stored message IDs
-      // Load last message time (default 0 for first load)
-      const lastMessageTime = this.loadFromStorage(`htmlchat_${this.elements.roomSelect.value}_last_time`) || 0;
-
       // Check for new messages after initial load
       if (!this.initialLoad && messages.length > 0) {
         const latestTime = Math.max(...messages.map(m => m.time || 0));
@@ -583,11 +582,6 @@ class HTMLChatApp {
 
       // Mark as loaded
       this.initialLoad = false;
-
-      this.saveToStorage(
-        `htmlchat_${this.elements.roomSelect.value}_count`,
-        messages.length
-      );
 
       // Store messages with proper IDs for deletion
       if (this.messageRenderer) {
